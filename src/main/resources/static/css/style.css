@@ -1,0 +1,109 @@
+/* Global Styles */
+:root {
+    --vn-green-primary: #006030; /* Quan doi Green */
+    --vn-red-accent: #da251d;    /* Flag Red */
+    --vn-yellow-star: #ffcd00;   /* Star Yellow */
+    --vn-yellow-text: #b38b00;   /* Darker Yellow for Text */
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    background-image: url('../background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* Mobile App View Constraint */
+.container {
+    max-width: 600px; /* Mimic mobile app width on desktop */
+}
+
+/* Color Overrides for VN Theme */
+.text-primary { color: var(--vn-green-primary) !important; }
+.bg-primary { background-color: var(--vn-green-primary) !important; }
+.btn-primary {
+    background-color: var(--vn-green-primary) !important;
+    border-color: var(--vn-green-primary) !important;
+}
+.btn-outline-primary {
+    color: var(--vn-green-primary) !important;
+    border-color: var(--vn-green-primary) !important;
+}
+.btn-outline-primary:hover {
+    background-color: var(--vn-green-primary) !important;
+    color: white !important;
+}
+
+.text-danger { color: var(--vn-red-accent) !important; }
+.bg-danger { background-color: var(--vn-red-accent) !important; }
+.btn-danger {
+    background-color: var(--vn-red-accent) !important;
+    border-color: var(--vn-red-accent) !important;
+}
+.btn-outline-danger {
+    color: var(--vn-red-accent) !important;
+    border-color: var(--vn-red-accent) !important;
+}
+.btn-outline-danger:hover {
+    background-color: var(--vn-red-accent) !important;
+    color: white !important;
+}
+
+.text-warning { color: var(--vn-yellow-text) !important; }
+.bg-warning { background-color: var(--vn-yellow-star) !important; }
+
+/* Custom Element Styles */
+.step-icon {
+    color: var(--vn-green-primary);
+    margin-bottom: 5px;
+}
+
+.card {
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.status-badge { font-size: 0.8rem; padding: 5px 10px; border-radius: 20px; }
+.bg-pending { background-color: #fff3cd; color: #856404; }
+.bg-approved { background-color: #d4edda; color: #155724; }
+.bg-rejected { background-color: #f8d7da; color: #721c24; }
+.bg-cancelled { background-color: #e2e3e5; color: #383d41; }
+
+/* Loading Overlay */
+#loadingOverlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(2px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Responsive Tweaks */
+@media (max-width: 576px) {
+    h1.h4 {
+        font-size: 1.2rem;
+    }
+}
+
+/* Admin Responsive Optimizations */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    .card-stat {
+        margin-bottom: 10px;
+    }
+    .card-stat h3 {
+        font-size: 1.5rem;
+    }
+    .table {
+        font-size: 0.8rem;
+    }
+}

@@ -1,0 +1,280 @@
+{
+	"info": {
+		"_postman_id": "b1f4c3d2-e5a6-4b7c-8d9e-0f1a2b3c4d5e",
+		"name": "Dang Ky Tham Quan Nhan API",
+		"description": "Collection test API cho dự án Đăng ký thăm quân nhân",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Public - Relatives",
+			"item": [
+				{
+					"name": "1. Get All Units",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/public/units",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"public",
+							"units"
+						]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Search Soldiers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/public/soldiers?unitId=2&keyword=An",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"public",
+							"soldiers"
+						],
+						"query": [
+							{
+								"key": "unitId",
+								"value": "2",
+								"description": "ID đơn vị"
+							},
+							{
+								"key": "keyword",
+								"value": "An",
+								"description": "Tên hoặc mã quân nhân"
+							}
+						]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Register Visit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"soldierId\": 1,\n    \"representativePhone\": \"0909123456\",\n    \"province\": \"Hải Phòng\",\n    \"visitWeek\": 2,\n    \"relatives\": [\n        {\n            \"name\": \"Nguyễn Văn Bác\",\n            \"relationship\": \"BÁC\"\n        },\n        {\n            \"name\": \"Trần Thị Thím\",\n            \"relationship\": \"THÍM\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/public/registrations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"public",
+							"registrations"
+						]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. Search Registration Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/public/registrations/search?phone=0909123456",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"public",
+							"registrations",
+							"search"
+						],
+						"query": [
+							{
+								"key": "phone",
+								"value": "0909123456"
+							}
+						]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"token\", jsonData.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/login",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"auth",
+							"login"
+						]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "1. Get Registrations List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/admin/registrations?status=PENDING&week=2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"admin",
+							"registrations"
+						],
+						"query": [
+							{
+								"key": "status",
+								"value": "PENDING"
+							},
+							{
+								"key": "week",
+								"value": "2"
+							}
+						]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2. Approve Registration",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"APPROVED\",\n    \"note\": \"Đã xác nhận, nhớ mang CCCD\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/admin/registrations/1/status",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"admin",
+							"registrations",
+							"1",
+							"status"
+						]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/v1/admin/stats?week=2",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+							"v1",
+							"admin",
+							"stats"
+						],
+						"query": [
+							{
+								"key": "week",
+								"value": "2"
+							}
+						]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

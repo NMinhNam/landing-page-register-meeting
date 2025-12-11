@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Đơn Vị</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        /* body style handled by style.css */
+        .navbar { background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+        .table-card { border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.03); overflow: hidden; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light px-4">
+    <a class="navbar-brand fw-bold text-primary" href="/admin/dashboard"><i class="fas fa-shield-alt"></i> Đơn Vị Quản Lý</a>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/dashboard">Tổng quan</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active fw-bold" href="/admin/units">Đơn vị</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/soldiers">Quân nhân</a>
+            </li>
+        </ul>
+    </div>
+    <div class="ms-auto d-flex align-items-center">
+        <span class="me-3 text-muted small">Xin chào, Admin</span>
+        <button class="btn btn-sm btn-outline-danger" onclick="logout()">Thoát</button>
+    </div>
+</nav>
+
+<div class="container-fluid py-4 px-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold text-muted">Danh sách Đơn vị</h4>
+        <button class="btn btn-primary" onclick="openModal()">
+            <i class="fas fa-plus"></i> Thêm Đơn vị
+        </button>
+    </div>
+
+    <!-- Content -->
+    <div class="card table-card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Tên Đơn Vị</th>
+                        <th class="d-none d-md-table-cell">Đơn Vị Cha (ID)</th>
+                        <th class="text-end pe-4">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- JS will populate -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="unitModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="modalTitle">Thêm Đơn Vị</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="unitId">
+                <div class="mb-3">
+                    <label class="form-label">Tên Đơn Vị</label>
+                    <input type="text" class="form-control" id="unitName" placeholder="Nhập tên đơn vị">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Đơn Vị Cha (ID)</label>
+                    <input type="number" class="form-control" id="parentId" placeholder="Nhập ID đơn vị cha (nếu có)">
+                </div>
+                <button class="btn btn-primary w-100" onclick="saveUnit()">
+                    <i class="fas fa-save"></i> Lưu lại
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/admin-units.js}"></script>
+<script>
+    function logout() {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login';
+    }
+</script>
+</body>
+</html>
