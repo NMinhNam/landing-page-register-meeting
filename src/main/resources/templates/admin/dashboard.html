@@ -110,10 +110,10 @@
                         <option value="4">Tuần 4</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="text" class="form-control form-control-sm" id="filterProvince" placeholder="Lọc theo Tỉnh/TP" oninput="debounceLoadData()">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select class="form-select form-select-sm" id="filterStatus" onchange="loadData()">
                         <option value="">Tất cả trạng thái</option>
                         <option value="PENDING">Chờ duyệt</option>
@@ -121,8 +121,8 @@
                         <option value="REJECTED">Từ chối</option>
                     </select>
                 </div>
-                <div class="col-md-3 text-end">
-                    <button class="btn btn-primary btn-sm" onclick="loadData()"><i class="fas fa-sync-alt"></i> Làm mới</button>
+                <div class="col-md-3">
+                    <button class="btn btn-primary btn-sm w-100" onclick="loadData()"><i class="fas fa-sync-alt"></i> Làm mới</button>
                 </div>
             </div>
         </div>

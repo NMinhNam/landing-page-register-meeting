@@ -1,19 +1,167 @@
-document.addEventListener('DOMContentLoaded', function() {
+function init() {
+    console.log('Initializing... SCRIPT LOADED');
     loadProvinces();
 
     // Event listeners
-    document.getElementById('btnAddRelative').addEventListener('click', addRelative);
-    document.getElementById('registrationForm').addEventListener('submit', submitRegistration);
-});
+    const btnAddRelative = document.getElementById('btnAddRelative');
+    console.log('btnAddRelative found:', btnAddRelative);
+    if (btnAddRelative) {
+        btnAddRelative.addEventListener('click', function() {
+            console.log('btnAddRelative clicked!');
+            addRelative();
+        });
+    }
+    
+    const registrationForm = document.getElementById('registrationForm');
+    console.log('registrationForm found:', registrationForm);
+    if (registrationForm) {
+        registrationForm.addEventListener('submit', function(e) {
+            console.log('Form submitted!');
+            submitRegistration(e);
+        });
+    }
+
+    const btnOpenLookup = document.getElementById('btnOpenLookup');
+    console.log('btnOpenLookup found:', btnOpenLookup);
+    if (btnOpenLookup) {
+        btnOpenLookup.addEventListener('click', function() {
+            console.log('btnOpenLookup clicked!');
+            openLookupModal();
+        });
+    }
+
+    const btnPerformLookup = document.getElementById('btnPerformLookup');
+    console.log('btnPerformLookup found:', btnPerformLookup);
+    if (btnPerformLookup) {
+        btnPerformLookup.addEventListener('click', function() {
+            console.log('btnPerformLookup clicked!');
+            performLookup();
+        });
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 let pollingInterval;
 let relativeCount = 1;
 
+function submitRegistrationForm(event) {
+    console.log('submitRegistrationForm called via onclick!');
+    event.preventDefault();
+    
+    const unitName = document.getElementById('manualUnitName').value.trim();
+    const soldierName = document.getElementById('manualSoldierName').value.trim();
+    const representativePhone = document.getElementById('representativePhone').value.trim();
+    const province = document.getElementById('province').value.trim();
+
+    console.log('Form data:', { unitName, soldierName, representativePhone, province });
+
+    // Validation
+    if (!unitName) { alert("Vui lòng nhập tên đơn vị"); return; }
+    if (!soldierName) { alert("Vui lòng nhập tên quân nhân"); return; }
+    if (!representativePhone) { alert("Vui lòng nhập SĐT đại diện"); return; }
+    if (!/^\d+$/.test(representativePhone)) { alert("SĐT đại diện phải là số"); return; }
+    if (!province) { alert("Vui lòng nhập Tỉnh/Thành phố"); return; }
+
+    // Gather relatives
+    const relativeItems = document.querySelectorAll('.relative-item');
+    const relatives = [];
+    let hasError = false;
+
+    relativeItems.forEach(item => {
+        if(hasError) return;
+        const name = item.querySelector('[name="relativeName"]').value.trim();
+        const idNum = item.querySelector('[name="idNumber"]').value.trim();
+        const rel = item.querySelector('[name="relationship"]').value;
+
+        if(!name || !idNum || !rel) {
+            alert("Vui lòng điền đầy đủ thông tin người thăm");
+            hasError = true;
+            return;
+        }
+        if(!/^\d+$/.test(idNum)) {
+            alert(`CCCD của ${name} phải là số`);
+            hasError = true;
+            return;
+        }
+
+        relatives.push({ name: name, idNumber: idNum, relationship: rel });
+    });
+
+    if (hasError) return;
+
+    if (relatives.length === 0) {
+        alert("Vui lòng nhập ít nhất 1 người thăm");
+        return;
+    }
+
+    showLoading(true);
+
+    const data = {
+        manualUnitName: unitName,
+        manualSoldierName: soldierName,
+        representativePhone: representativePhone,
+        province: province,
+        relatives: relatives
+    };
+
+    console.log('Sending data:', data);
+    
+    fetch('/api/v1/public/registrations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log('Registration response:', response);
+        if(response.ok) return response.json();
+        throw new Error('Có lỗi xảy ra');
+    })
+    .then(result => {
+        console.log('Registration success:', result);
+        showStatusView(representativePhone);
+    })
+    .catch(err => {
+        console.error('Registration error:', err);
+        alert(err.message);
+    })
+    .finally(() => showLoading(false));
+}
+
+function loadUnits() {
+    // Function removed - no longer needed since users input unit name manually
+}
+
+function loadSoldiers(unitId) {
+    // Function removed - no longer needed since users input soldier name manually
+}
+
 function loadProvinces() {
+    console.log('Loading provinces...');
     fetch('/data/provinces.json')
-        .then(response => response.json())
+        .then(response => {
+            console.log('Provinces fetch response:', response);
+            if (!response.ok) {
+                throw new Error('Cannot load provinces: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Provinces data loaded:', data.length, 'items');
             const select = document.getElementById('province');
+            console.log('Province select element found:', select);
+            
+            if (!select) {
+                console.error('Province select element not found!');
+                return;
+            }
+            
             // Sort by name alphabetically
             data.sort((a, b) => a.name.localeCompare(b.name));
             data.forEach(p => {
@@ -22,8 +170,24 @@ function loadProvinces() {
                 option.textContent = p.name;
                 select.appendChild(option);
             });
+            console.log('Provinces populated successfully');
         })
-        .catch(err => console.error('Error loading provinces:', err));
+        .catch(err => {
+            console.error('Error loading provinces:', err);
+            // Fallback: add some common provinces manually
+            const select = document.getElementById('province');
+            if (select) {
+                const provinces = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 
+                                 'Bắc Ninh', 'Bình Dương', 'Đồng Nai', 'Vĩnh Phúc', 'Hưng Yên'];
+                provinces.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p;
+                    option.textContent = p;
+                    select.appendChild(option);
+                });
+                console.log('Fallback provinces added');
+            }
+        });
 }
 
 function addRelative() {
@@ -72,14 +236,14 @@ function removeRelative(btn) {
 function submitRegistration(e) {
     e.preventDefault();
     
-    const manualUnitName = document.getElementById('manualUnitName').value.trim(); // New manual unit name input
-    const manualSoldier = document.getElementById('manualSoldierName').value.trim();
+    const unitName = document.getElementById('manualUnitName').value.trim();
+    const soldierName = document.getElementById('manualSoldierName').value.trim();
     const representativePhone = document.getElementById('representativePhone').value.trim();
     const province = document.getElementById('province').value.trim();
 
     // Validation
-    if (!manualUnitName) { alert("Vui lòng nhập tên đơn vị"); return; }
-    if (!manualSoldier) { alert("Vui lòng nhập tên quân nhân"); return; }
+    if (!unitName) { alert("Vui lòng nhập tên đơn vị"); return; }
+    if (!soldierName) { alert("Vui lòng nhập tên quân nhân"); return; }
     if (!representativePhone) { alert("Vui lòng nhập SĐT đại diện"); return; }
     if (!/^\d+$/.test(representativePhone)) { alert("SĐT đại diện phải là số"); return; }
     if (!province) { alert("Vui lòng nhập Tỉnh/Thành phố"); return; }
@@ -119,8 +283,8 @@ function submitRegistration(e) {
     showLoading(true);
 
     const data = {
-        manualUnitName: manualUnitName, // New manual unit name input
-        manualSoldierName: manualSoldier,
+        manualUnitName: unitName,
+        manualSoldierName: soldierName,
         representativePhone: representativePhone,
         province: province,
         relatives: relatives
@@ -149,26 +313,57 @@ function submitRegistration(e) {
 // --- Status & Lookup Logic ---
 
 function openLookupModal() {
-    const modal = new bootstrap.Modal(document.getElementById('lookupModal'));
-    modal.show();
+    console.log('openLookupModal called - checking bootstrap...');
+    
+    // Check if Bootstrap is available
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded!');
+        alert('Bootstrap không được load. Vui lòng làm mới trang.');
+        return;
+    }
+    
+    console.log('Bootstrap available:', typeof bootstrap);
+    const modalElement = document.getElementById('lookupModal');
+    console.log('Modal element found:', modalElement);
+    
+    try {
+        const modal = new bootstrap.Modal(modalElement);
+        console.log('Modal created:', modal);
+        modal.show();
+    } catch (error) {
+        console.error('Error creating modal:', error);
+        alert('Không thể mở dialog tra cứu: ' + error.message);
+    }
 }
 
 function performLookup() {
     const phone = document.getElementById('lookupPhone').value;
+    console.log('performLookup called with phone:', phone);
+    
     if(!phone) {
         alert('Vui lòng nhập số điện thoại');
         return;
     }
     
-    bootstrap.Modal.getInstance(document.getElementById('lookupModal')).hide();
+    console.log('Hiding modal...');
+    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('lookupModal'));
+    console.log('Modal instance:', modalInstance);
+    
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+    
     showLoading(true);
     
+    console.log('Fetching registration data...');
     fetch(`/api/v1/public/registrations/search?phone=${phone}`)
         .then(res => {
+            console.log('Response status:', res.status);
             if(!res.ok) throw new Error('Không tìm thấy hồ sơ');
             return res.json();
         })
         .then(data => {
+            console.log('Data received:', data);
             if (data && data.length > 0) {
                 showStatusView(phone);
             } else {
@@ -176,6 +371,7 @@ function performLookup() {
             }
         })
         .catch(err => {
+            console.error('Lookup error:', err);
             alert(err.message);
         })
         .finally(() => showLoading(false));
@@ -207,9 +403,9 @@ function updateStatusUI(data) {
     const msg = document.getElementById('statusMessage');
     const pollingInd = document.getElementById('pollingIndicator');
     const noteSection = document.getElementById('adminNoteSection');
-    
+
     document.getElementById('detailCode').textContent = `REG-${data.id}`;
-    document.getElementById('detailRelative').textContent = data.relative_name || data.relativeName || '...'; 
+    document.getElementById('detailRelative').textContent = data.relative_name || data.relativeName || '...';
     document.getElementById('detailSoldier').textContent = data.soldierName || data.manual_soldier_name;
     document.getElementById('detailUnit').textContent = data.unitName || data.manual_unit_name || 'N/A';
 
@@ -227,63 +423,63 @@ function updateStatusUI(data) {
             btnCancel.id = 'btnCancelReg';
             btnCancel.className = 'btn btn-outline-danger w-100 mt-2';
             btnCancel.innerHTML = '<i class="fas fa-times-circle"></i> Hủy đăng ký';
-            btnCancel.onclick = function() { cancelRegistration(data.id); };
+            btnCancel.onclick = function () {
+                cancelRegistration(data.id);
+            };
             document.getElementById('statusSection').querySelector('.card-body').appendChild(btnCancel);
         }
-    } 
-    else {
+    } else {
         // Remove Cancel Button if not pending
         const existingBtn = document.getElementById('btnCancelReg');
-        if(existingBtn) existingBtn.remove();
-        
+        if (existingBtn) existingBtn.remove();
+
         if (data.status === 'APPROVED') {
-        iconContainer.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>';
-        title.className = 'fw-bold text-success';
-        title.textContent = 'Đã được chấp thuận!';
-        msg.textContent = 'Chúc mừng! Đơn vị đã đồng ý cho bạn vào thăm. Vui lòng mang theo giấy tờ tùy thân.';
-        pollingInd.style.display = 'none';
-        noteSection.style.display = 'none';
-    } 
-    else if (data.status === 'REJECTED') {
-        iconContainer.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>';
-        title.className = 'fw-bold text-danger';
-        title.textContent = 'Đã bị từ chối';
-        msg.textContent = 'Rất tiếc, yêu cầu của bạn chưa được chấp thuận lần này.';
-        pollingInd.style.display = 'none';
-        
-        if(data.note) {
-            noteSection.style.display = 'block';
-            document.getElementById('detailNote').textContent = data.note;
+            iconContainer.innerHTML = '<i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>';
+            title.className = 'fw-bold text-success';
+            title.textContent = 'Đã được chấp thuận!';
+            msg.textContent = 'Chúc mừng! Đơn vị đã đồng ý cho bạn vào thăm. Vui lòng mang theo giấy tờ tùy thân.';
+            pollingInd.style.display = 'none';
+            noteSection.style.display = 'none';
+        } else if (data.status === 'REJECTED') {
+            iconContainer.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>';
+            title.className = 'fw-bold text-danger';
+            title.textContent = 'Đã bị từ chối';
+            msg.textContent = 'Rất tiếc, yêu cầu của bạn chưa được chấp thuận lần này.';
+            pollingInd.style.display = 'none';
+
+            if (data.note) {
+                noteSection.style.display = 'block';
+                document.getElementById('detailNote').textContent = data.note;
+            }
+        } else if (data.status === 'CANCELLED') {
+            iconContainer.innerHTML = '<i class="fas fa-ban text-secondary" style="font-size: 5rem;"></i>';
+            title.className = 'fw-bold text-secondary';
+            title.textContent = 'Đã hủy';
+            msg.textContent = 'Bạn đã hủy đơn đăng ký này.';
+            pollingInd.style.display = 'none';
+            noteSection.style.display = 'none';
         }
-    }
-    else if (data.status === 'CANCELLED') {
-        iconContainer.innerHTML = '<i class="fas fa-ban text-secondary" style="font-size: 5rem;"></i>';
-        title.className = 'fw-bold text-secondary';
-        title.textContent = 'Đã hủy';
-        msg.textContent = 'Bạn đã hủy đơn đăng ký này.';
-        pollingInd.style.display = 'none';
-        noteSection.style.display = 'none';
     }
 }
 
 function cancelRegistration(id) {
-    if(!confirm('Bạn có chắc muốn hủy đơn đăng ký này không?')) return;
-    
-    showLoading(true);
-    fetch(`/api/v1/public/registrations/${id}/cancel`, {
-        method: 'PUT'
-    })
-    .then(res => {
-        if(res.ok) {
-            pollStatus(document.getElementById('representativePhone').value || document.getElementById('lookupPhone').value);
-        } else {
-            alert('Không thể hủy đơn. Có thể đơn đã được duyệt.');
-        }
-    })
-    .catch(err => alert('Lỗi kết nối'))
-    .finally(() => showLoading(false));
-}
+    if (!confirm('Bạn có chắc muốn hủy đơn đăng ký này không?')) return;
 
-function showLoading(isLoading) {
+        showLoading(true);
+        fetch(`/api/v1/public/registrations/${id}/cancel`, {
+            method: 'PUT'
+        })
+            .then(res => {
+                if (res.ok) {
+                    pollStatus(document.getElementById('representativePhone').value || document.getElementById('lookupPhone').value);
+                } else {
+                    alert('Không thể hủy đơn. Có thể đơn đã được duyệt.');
+                }
+            })
+            .catch(err => alert('Lỗi kết nối'))
+            .finally(() => showLoading(false));
+    }
+
+    function showLoading(isLoading) {
     document.getElementById('loadingOverlay').style.display = isLoading ? 'flex' : 'none';
 }

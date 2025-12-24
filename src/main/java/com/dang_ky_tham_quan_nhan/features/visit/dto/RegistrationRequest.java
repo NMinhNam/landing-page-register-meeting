@@ -3,21 +3,12 @@ package com.dang_ky_tham_quan_nhan.features.visit.dto;
 import java.util.List;
 
 public class RegistrationRequest {
-    private Long soldierId;
     private String manualSoldierName;
     private String manualUnitName;
     private String representativePhone;
     private String province;
     private Integer visitWeek;
     private List<RelativeInfo> relatives;
-
-    public Long getSoldierId() {
-        return soldierId;
-    }
-
-    public void setSoldierId(Long soldierId) {
-        this.soldierId = soldierId;
-    }
 
     public String getManualSoldierName() {
         return manualSoldierName;
@@ -31,7 +22,7 @@ public class RegistrationRequest {
         return manualUnitName;
     }
 
-    public void void setManualUnitName(String manualUnitName) {
+    public void setManualUnitName(String manualUnitName) {
         this.manualUnitName = manualUnitName;
     }
 

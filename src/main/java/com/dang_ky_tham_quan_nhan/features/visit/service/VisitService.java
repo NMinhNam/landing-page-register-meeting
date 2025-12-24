@@ -35,7 +35,7 @@ public class VisitService {
         // 1. Create Registration
         VisitRegistration reg = new VisitRegistration();
         
-        // Manual Soldier & Unit Logic
+        // Manual Soldier & Unit Logic - users input directly
         reg.setSoldierId(null);
         reg.setManualSoldierName(request.getManualSoldierName());
         reg.setManualUnitName(request.getManualUnitName());
