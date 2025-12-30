@@ -1,9 +1,15 @@
 package com.dang_ky_tham_quan_nhan.features.visit.dto;
 
 import com.dang_ky_tham_quan_nhan.common.enums.VisitStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "Request object for updating visit status")
 public class UpdateStatusRequest {
-    private VisitStatus status; // APPROVED, REJECTED
+    
+    @Schema(description = "New status for the visit (APPROVED, REJECTED)", example = "APPROVED")
+    private VisitStatus status;
+    
+    @Schema(description = "Note or reason for the status change", example = "Approved for visit.")
     private String note;
 
     public VisitStatus getStatus() {

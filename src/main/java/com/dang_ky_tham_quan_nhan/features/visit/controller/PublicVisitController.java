@@ -3,6 +3,8 @@ package com.dang_ky_tham_quan_nhan.features.visit.controller;
 import com.dang_ky_tham_quan_nhan.features.visit.dto.RegistrationRequest;
 import com.dang_ky_tham_quan_nhan.features.visit.entity.VisitRegistration;
 import com.dang_ky_tham_quan_nhan.features.visit.service.VisitService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/public/registrations")
+@Tag(name = "Public Visit", description = "Public Visit Registration APIs")
 public class PublicVisitController {
 
     private final VisitService visitService;
@@ -22,6 +25,7 @@ public class PublicVisitController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Register Visit", description = "Submit a new visit registration request.")
     public Map<String, Object> register(@RequestBody RegistrationRequest request) {
         VisitRegistration reg = visitService.registerVisit(request);
         Map<String, Object> response = new HashMap<>();
@@ -31,20 +35,11 @@ public class PublicVisitController {
     }
 
     @GetMapping("/search")
+    @Operation(summary = "Search Registrations (Public)", description = "Check status of registration by phone or code.")
     public List<Map<String, Object>> search(@RequestParam(required = false) String phone,
                                             @RequestParam(required = false) String code) {
         List<Map<String, Object>> results = visitService.searchRegistration(phone, code);
-        // We can return the raw list directly, or map it if needed.
-        // The mapper already returns what we need (including relative_name group_concat).
-        // If we want to transform keys (e.g. created_at -> createdAt), we can do it here, 
-        // but for simplicity and frontend compatibility let's just return the list 
-        // and ensure frontend uses correct keys (snake_case from DB map or adjust here).
         
-        // However, the original controller manually mapped keys:
-        // response.put("soldierName", first.get("soldier_name"));
-        // This implies the frontend expects camelCase.
-        
-        // Let's map all results to camelCase.
         return results.stream().map(row -> {
             Map<String, Object> response = new HashMap<>();
             response.put("id", row.get("id"));
@@ -60,6 +55,7 @@ public class PublicVisitController {
     }
 
     @PutMapping("/{id}/cancel")
+    @Operation(summary = "Cancel Registration", description = "Cancel a pending registration.")
     public void cancel(@PathVariable Long id) {
         visitService.cancelRegistration(id);
     }

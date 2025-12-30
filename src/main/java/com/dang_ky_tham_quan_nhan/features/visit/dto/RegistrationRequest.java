@@ -1,13 +1,27 @@
 package com.dang_ky_tham_quan_nhan.features.visit.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
+@Schema(description = "Request object for visit registration")
 public class RegistrationRequest {
+    
+    @Schema(description = "Name of the soldier (manually entered if not found)", example = "Tran Van B")
     private String manualSoldierName;
+    
+    @Schema(description = "Name of the unit (manually entered if not found)", example = "Company 3")
     private String manualUnitName;
+    
+    @Schema(description = "Phone number of the representative relative", example = "0987654321")
     private String representativePhone;
+    
+    @Schema(description = "Province of the representative", example = "Hanoi")
     private String province;
+    
+    @Schema(description = "Week number requested for visit (1-4)", example = "2")
     private Integer visitWeek;
+    
+    @Schema(description = "List of relatives visiting")
     private List<RelativeInfo> relatives;
 
     public String getManualSoldierName() {
@@ -58,9 +72,16 @@ public class RegistrationRequest {
         this.relatives = relatives;
     }
 
+    @Schema(description = "Information about a relative")
     public static class RelativeInfo {
+        
+        @Schema(description = "Name of the relative", example = "Nguyen Thi C")
         private String name;
+        
+        @Schema(description = "Relationship with the soldier", example = "Mother")
         private String relationship;
+        
+        @Schema(description = "ID number of the relative", example = "123456789")
         private String idNumber;
 
         public String getName() {

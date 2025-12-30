@@ -1,5 +1,5 @@
 server:
-  port: 9090
+  port: ${PORT:9090}
   servlet:
     context-path: /
 
@@ -7,12 +7,12 @@ spring:
   application:
     name: dang_ky_tham_quan_nhan
 
-  # Database Configuration (MariaDB)
+  # Database Configuration
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mariadb://localhost:3306/dang_ky_tham_quan_nhan?useUnicode=true&characterEncoding=utf-8&useSSL=false
-    username: root
-    password: root123
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
