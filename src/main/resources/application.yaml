@@ -2,10 +2,20 @@ server:
   port: ${PORT:9090}
   servlet:
     context-path: /
+  tomcat:
+    threads:
+      max: 20 # Low RAM optimization
+      min-spare: 5
+    connection-timeout: 20000
+    max-connections: 100
+    accept-count: 50
 
 spring:
   application:
     name: dang_ky_tham_quan_nhan
+
+  config:
+    import: optional:file:../.env[.properties],optional:file:.env[.properties]
 
   # Database Configuration
   datasource:
@@ -14,8 +24,8 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
+      maximum-pool-size: 5 # Reduce for Low RAM
+      minimum-idle: 2
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000

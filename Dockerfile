@@ -21,4 +21,6 @@ COPY --from=build /app/target/*.jar app.jar
 EXPOSE 9090
 
 # Command to run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Low RAM config suggestion: -Xms128m -Xmx256m -XX:+UseSerialGC -Xss512k -XX:ReservedCodeCacheSize=64M
+ENV JAVA_OPTS="-Xms128m -Xmx256m -XX:+UseSerialGC -Xss512k -XX:ReservedCodeCacheSize=64M"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

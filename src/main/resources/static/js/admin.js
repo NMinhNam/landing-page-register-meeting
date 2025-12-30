@@ -81,18 +81,30 @@ function loadData(isSilent = false) {
 
             const row = `
                 <tr>
-                    <td class="ps-4">
+                    <td class="ps-4 text-muted small">
+                        ${formatDate(item.created_at)}
+                    </td>
+                    <td>
                         <div class="fw-bold text-dark">${item.soldier_name}</div>
                     </td>
-                    <td class="d-none d-md-table-cell"><span class="badge bg-light text-dark border">${item.unit_name || 'N/A'}</span></td>
+                    <td class="d-none d-md-table-cell"><span class="badge bg-light text-dark border text-wrap" style="max-width: 150px;">${item.unit_name || 'N/A'}</span></td>
                     <td>
-                        <div class="fw-bold text-primary" style="max-width: 200px; white-space: normal;">${item.relative_name}</div>
-                        <div class="small text-muted"><i class="fas fa-phone-alt me-1"></i> ${item.relative_phone}</div>
+                        <div class="fw-bold text-primary text-truncate" style="max-width: 150px;" title="${item.relative_name}">
+                            ${item.relative_name}
+                        </div>
+                        <span class="badge bg-secondary rounded-pill" title="Số lượng người">${item.relative_name ? item.relative_name.split(',').length : 0} người</span>
                     </td>
-                    <td class="d-none d-md-table-cell">Tuần ${item.visit_week}</td>
-                    <td class="d-none d-md-table-cell">${item.province || '-'}</td>
-                    <td>${getStatusBadge(item.status)}</td>
-                    <td class="d-none d-md-table-cell"><span class="text-muted small fst-italic">${item.note || '-'}</span></td>
+                    <td>
+                        <a href="tel:${item.relative_phone}" class="text-decoration-none fw-bold text-dark"><i class="fas fa-phone-alt me-1 text-muted"></i>${item.relative_phone}</a>
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        <div>Tuần <span class="fw-bold">${item.visit_week}</span></div>
+                        <small class="text-muted">${item.province || '-'}</small>
+                    </td>
+                    <td>
+                        ${getStatusBadge(item.status)}
+                        ${item.note ? `<div class="small text-muted fst-italic mt-1 text-truncate" style="max-width: 150px;" title="${item.note}">${item.note}</div>` : ''}
+                    </td>
                     <td class="text-end pe-4">
                         ${actionBtn}
                         <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteRegistration(${item.id})">
@@ -105,6 +117,15 @@ function loadData(isSilent = false) {
         });
     })
     .catch(err => console.error(err));
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', { 
+        year: 'numeric', month: '2-digit', day: '2-digit', 
+        hour: '2-digit', minute: '2-digit' 
+    });
 }
 
 function loadStats() {
