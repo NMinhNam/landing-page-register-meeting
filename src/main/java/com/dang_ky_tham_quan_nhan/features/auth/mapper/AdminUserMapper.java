@@ -9,4 +9,7 @@ public interface AdminUserMapper {
     
     @Select("SELECT * FROM admin_user WHERE username = #{username}")
     AdminUser findByUsername(String username);
+
+    @Select("SELECT * FROM admin_user WHERE id = #{id}")
+    AdminUser findById(Long id);
 }

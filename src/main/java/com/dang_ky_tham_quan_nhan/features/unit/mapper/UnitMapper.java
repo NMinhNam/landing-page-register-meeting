@@ -13,6 +13,9 @@ public interface UnitMapper {
     @Select("SELECT * FROM unit WHERE id = #{id}")
     Unit findById(Long id);
 
+    @Select("SELECT * FROM unit WHERE name = #{name} LIMIT 1")
+    Unit findByName(String name);
+
     @Insert("INSERT INTO unit (name, parent_id) VALUES (#{name}, #{parentId})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(Unit unit);

@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public class VisitRegistration implements Serializable {
     private Long id;
     private Long soldierId;
+    private Long unitId;
     private String manualSoldierName;
     private String manualUnitName;
     private String representativePhone;
@@ -49,6 +50,14 @@ public class VisitRegistration implements Serializable {
 
     public void setSoldierId(Long soldierId) {
         this.soldierId = soldierId;
+    }
+
+    public Long getUnitId() {
+        return unitId;
+    }
+
+    public void setUnitId(Long unitId) {
+        this.unitId = unitId;
     }
 
     public String getRepresentativePhone() {

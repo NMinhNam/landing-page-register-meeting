@@ -11,6 +11,16 @@ public class UpdateStatusRequest {
     
     @Schema(description = "Note or reason for the status change", example = "Approved for visit.")
     private String note;
+    
+    private Long adminId;
+
+    public Long getAdminId() {
+        return adminId;
+    }
+
+    public void setAdminId(Long adminId) {
+        this.adminId = adminId;
+    }
 
     public VisitStatus getStatus() {
         return status;

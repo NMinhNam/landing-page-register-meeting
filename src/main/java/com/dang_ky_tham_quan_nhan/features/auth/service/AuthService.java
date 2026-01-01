@@ -23,6 +23,8 @@ public class AuthService {
         if (user != null && user.getPassword().equals(request.getPassword())) {
             Map<String, Object> response = new HashMap<>();
             response.put("token", UUID.randomUUID().toString());
+            response.put("id", user.getId());
+            response.put("unitId", user.getUnitId());
             response.put("role", user.getRole());
             response.put("username", user.getUsername());
             return response;

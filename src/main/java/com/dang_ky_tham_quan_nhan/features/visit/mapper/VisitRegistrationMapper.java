@@ -9,8 +9,8 @@ import java.util.Map;
 @Mapper
 public interface VisitRegistrationMapper {
 
-    @Insert("INSERT INTO visit_registration(soldier_id, manual_soldier_name, manual_unit_name, representative_phone, province, visit_week, status, note, created_at, approved_at) " +
-            "VALUES(#{soldierId, jdbcType=BIGINT}, #{manualSoldierName, jdbcType=VARCHAR}, #{manualUnitName, jdbcType=VARCHAR}, #{representativePhone}, #{province}, #{visitWeek}, #{status}, #{note, jdbcType=VARCHAR}, #{createdAt}, #{approvedAt, jdbcType=TIMESTAMP})")
+    @Insert("INSERT INTO visit_registration(soldier_id, unit_id, manual_soldier_name, manual_unit_name, representative_phone, province, visit_week, status, note, created_at, approved_at) " +
+            "VALUES(#{soldierId, jdbcType=BIGINT}, #{unitId, jdbcType=BIGINT}, #{manualSoldierName, jdbcType=VARCHAR}, #{manualUnitName, jdbcType=VARCHAR}, #{representativePhone}, #{province}, #{visitWeek}, #{status}, #{note, jdbcType=VARCHAR}, #{createdAt}, #{approvedAt, jdbcType=TIMESTAMP})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insert(VisitRegistration registration);
 
@@ -32,24 +32,27 @@ public interface VisitRegistrationMapper {
             "(SELECT GROUP_CONCAT(r.name SEPARATOR ', ') FROM relative r WHERE r.visit_registration_id = v.id) as relative_name " +
             "FROM visit_registration v " +
             "LEFT JOIN soldier s ON v.soldier_id = s.id " +
-            "LEFT JOIN unit u ON s.unit_id = u.id " +
+            "LEFT JOIN unit u ON v.unit_id = u.id " + // Use direct unit_id link
             "WHERE (#{phone} IS NULL OR v.representative_phone = #{phone})" +
             "</script>")
     List<Map<String, Object>> findByPhone(@Param("phone") String phone);
 
     @Select("<script>" +
-            "SELECT v.*, " +
+            "SELECT v.*, v.unit_id, " +
             "COALESCE(s.name, v.manual_soldier_name) as soldier_name, " +
-            "GROUP_CONCAT(r.name SEPARATOR ', ') as relative_name, " + // Use relative_name to match existing DTO/Map usage if any
+            "GROUP_CONCAT(r.name SEPARATOR ', ') as relative_name, " +
+            "GROUP_CONCAT(r.id_number SEPARATOR ', ') as relative_ids, " +
             "v.representative_phone as relative_phone, v.province, " +
             "COALESCE(u.name, v.manual_unit_name) as unit_name " +
             "FROM visit_registration v " +
             "LEFT JOIN soldier s ON v.soldier_id = s.id " +
-            "LEFT JOIN unit u ON s.unit_id = u.id " +
-            "LEFT JOIN unit u_manual ON v.manual_unit_name = u_manual.name " +
+            "LEFT JOIN unit u ON v.unit_id = u.id " + // JOIN directly via v.unit_id
             "LEFT JOIN relative r ON v.id = r.visit_registration_id " +
             "WHERE 1=1 " +
-            "<if test='unitId != null'> AND (s.unit_id = #{unitId} OR u_manual.id = #{unitId}) </if>" +
+            "<if test='unitIds != null and !unitIds.isEmpty()'>" +
+            " AND v.unit_id IN " + // Strict filter on v.unit_id
+            "   <foreach item='uid' collection='unitIds' open='(' separator=',' close=')'>#{uid}</foreach>" +
+            "</if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "<if test='province != null and province != \"\"'> AND v.province = #{province} </if>" +
             "<if test='status != null and status != \"\"'> AND v.status = #{status} </if>" +
@@ -63,7 +66,7 @@ public interface VisitRegistrationMapper {
             "GROUP BY v.id " +
             "ORDER BY v.created_at DESC" +
             "</script>")
-    List<Map<String, Object>> searchAdmin(@Param("unitId") Long unitId, 
+    List<Map<String, Object>> searchAdmin(@Param("unitIds") List<Long> unitIds, 
                                           @Param("week") Integer week, 
                                           @Param("province") String province, 
                                           @Param("status") String status,

@@ -153,37 +153,70 @@ function submitRegistrationForm(event) {
     .finally(() => showLoading(false));
 }
 
+let cachedUnits = [];
+
 function loadUnits() {
     console.log('[DEBUG] Calling Units API: /api/v1/public/units');
     fetch('/api/v1/public/units')
         .then(response => {
-            console.log('[DEBUG] Units API Status:', response.status);
             if (!response.ok) throw new Error('Cannot load units');
             return response.json();
         })
         .then(data => {
-            console.log('[DEBUG] Units API Data Received:', data);
-            const select = document.getElementById('manualUnitName');
-            if (!select) {
-                console.error('[DEBUG] Element #manualUnitName NOT FOUND');
-                return;
-            }
+            console.log('[DEBUG] Units Data:', data);
+            cachedUnits = data || [];
             
-            select.innerHTML = '<option value="">-- Chọn Đơn vị --</option>';
+            const parentSelect = document.getElementById('parentUnitSelect');
+            const childSelect = document.getElementById('manualUnitName');
             
-            if (data && data.length > 0) {
-                data.forEach(unit => {
-                    const option = document.createElement('option');
-                    option.value = unit.name; 
-                    option.textContent = unit.name;
-                    select.appendChild(option);
-                });
-                console.log('[DEBUG] Units dropdown populated with', data.length, 'items');
-            } else {
-                console.warn('[DEBUG] Units API returned EMPTY array');
-            }
+            if (!parentSelect || !childSelect) return;
+            
+            // 1. Populate Parent Units (Roots)
+            parentSelect.innerHTML = '<option value="">-- Chọn Cấp trên --</option>';
+            
+            // Filter units with no parentId (Roots)
+            const roots = cachedUnits.filter(u => !u.parentId);
+            roots.sort((a, b) => a.name.localeCompare(b.name));
+            
+            roots.forEach(unit => {
+                const option = document.createElement('option');
+                option.value = unit.id; // Use ID for filtering children
+                option.textContent = unit.name;
+                parentSelect.appendChild(option);
+            });
+            
+            // 2. Add Event Listener
+            parentSelect.addEventListener('change', function() {
+                const parentId = this.value;
+                childSelect.innerHTML = '<option value="">-- Chọn Đơn vị --</option>';
+                childSelect.disabled = true;
+                
+                if (parentId) {
+                    // Filter children
+                    const children = cachedUnits.filter(u => u.parentId == parentId);
+                    
+                    if (children.length > 0) {
+                        children.sort((a, b) => a.name.localeCompare(b.name));
+                        children.forEach(unit => {
+                            const option = document.createElement('option');
+                            option.value = unit.name; // Value is NAME (as backend expects manualUnitName)
+                            option.textContent = unit.name;
+                            childSelect.appendChild(option);
+                        });
+                        childSelect.disabled = false;
+                    } else {
+                        // Edge case: Parent has no children, maybe allow selecting parent itself?
+                        // For now, just show message
+                         const option = document.createElement('option');
+                         option.text = "Không có đơn vị trực thuộc";
+                         childSelect.add(option);
+                    }
+                }
+            });
+
+            console.log('[DEBUG] 2-Level Units Dropdown initialized');
         })
-        .catch(err => console.error('[DEBUG] Error in loadUnits:', err));
+        .catch(err => console.error('[DEBUG] Error loading units:', err));
 }
 
 function loadSoldiers(unitId) {
@@ -263,8 +296,11 @@ function addRelative() {
                 <div class="col-6">
                     <select class="form-select" name="relationship" required>
                          <option value="" disabled selected>Quan hệ</option>
-                         <option value="Cha/Mẹ">Cha/Mẹ</option>
-                         <option value="Vợ/Chồng">Vợ/Chồng</option>
+                         <option value="Ông">Ông</option>
+                         <option value="Bà">Bà</option>
+                         <option value="Cha">Cha</option>
+                         <option value="Mẹ">Mẹ</option>
+                         <option value="Vợ">Vợ</option>
                          <option value="Anh/Chị/Em">Anh/Chị/Em</option>
                          <option value="Con">Con</option>
                          <option value="Khác">Khác</option>
@@ -511,10 +547,10 @@ function updateStatusUI(data) {
             title.textContent = 'Đã bị từ chối';
             msg.textContent = 'Rất tiếc, yêu cầu của bạn chưa được chấp thuận lần này.';
 
-            if (data.note) {
-                noteSection.style.display = 'block';
-                document.getElementById('detailNote').textContent = data.note;
-            }
+            // Always show note section for REJECTED
+            noteSection.style.display = 'block';
+            const noteText = data.note || 'Không có lý do cụ thể từ đơn vị.';
+            document.getElementById('detailNote').textContent = noteText;
             
             // Add Re-Register Button
             const btnReReg = document.createElement('button');

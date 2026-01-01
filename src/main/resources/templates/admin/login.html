@@ -81,6 +81,8 @@
         })
         .then(data => {
             localStorage.setItem('adminToken', data.token);
+            localStorage.setItem('adminId', data.id);
+            localStorage.setItem('adminUnitId', data.unitId);
             localStorage.setItem('adminRole', data.role);
             localStorage.setItem('adminUser', data.username);
             window.location.href = '/admin/dashboard';

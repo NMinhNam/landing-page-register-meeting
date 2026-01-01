@@ -84,6 +84,13 @@ CREATE TABLE admin_user (
                                 FOREIGN KEY (unit_id) REFERENCES unit(id)
 );
 
+ALTER TABLE visit_registration ADD COLUMN unit_id BIGINT NULL;
+ALTER TABLE visit_registration ADD CONSTRAINT fk_visit_direct_unit FOREIGN KEY (unit_id) REFERENCES unit(id);
+UPDATE visit_registration v
+JOIN unit u ON v.manual_unit_name = u.name
+SET v.unit_id = u.id
+WHERE v.unit_id IS NULL;
+
 -- INDEX
 CREATE INDEX idx_soldier_unit ON soldier(unit_id);
 CREATE INDEX idx_visit_status ON visit_registration(status);

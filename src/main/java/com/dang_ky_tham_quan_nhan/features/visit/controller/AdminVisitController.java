@@ -4,6 +4,9 @@ import com.dang_ky_tham_quan_nhan.features.visit.dto.UpdateStatusRequest;
 import com.dang_ky_tham_quan_nhan.features.visit.service.VisitService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +23,31 @@ public class AdminVisitController {
         this.visitService = visitService;
     }
 
+    @GetMapping("/export/registrations")
+    @Operation(summary = "Export Registrations", description = "Export registrations to CSV.")
+    public ResponseEntity<byte[]> exportRegistrations(
+            @RequestParam(required = false) Long unitId,
+            @RequestParam(required = false) Integer week,
+            @RequestParam(required = false) String province,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long adminId
+    ) {
+        System.out.println("[EXPORT] Request received. AdminId=" + adminId + ", Week=" + week);
+        try {
+            byte[] content = visitService.exportRegistrations(unitId, week, province, status, adminId);
+            System.out.println("[EXPORT] Success. Bytes: " + content.length);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ds_dang_ky_tham_gap.csv\"")
+                    .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                    .body(content);
+        } catch (Exception e) {
+            System.err.println("[EXPORT] Error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/registrations")
     @Operation(summary = "Search Registrations", description = "Filter and list visit registrations.")
     public Map<String, Object> getRegistrations(
@@ -28,14 +56,21 @@ public class AdminVisitController {
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long adminId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         // Note: Pagination is not fully implemented in the mapper yet for simplicity, 
         // returning full list for now or can use Mybatis Plus IPage if needed. 
         // Just returning list structure as per requirement.
-        List<Map<String, Object>> data = visitService.searchAdmin(unitId, week, province, status, keyword);
+        List<Map<String, Object>> data = visitService.searchAdmin(unitId, week, province, status, keyword, adminId);
         return Map.of("data", data, "total", data.size());
+    }
+
+    @GetMapping("/registrations/{id}")
+    @Operation(summary = "Get Registration Details", description = "Get full details of a visit registration including relatives.")
+    public Map<String, Object> getRegistrationDetail(@PathVariable Long id) {
+        return visitService.getRegistrationDetail(id);
     }
 
     @PutMapping("/registrations/{id}/status")
