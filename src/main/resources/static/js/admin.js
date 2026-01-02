@@ -46,7 +46,7 @@ function loadData(isSilent = false) {
     if(status) url += `&status=${status}`;
     if(province) url += `&province=${encodeURIComponent(province)}`;
     if(keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-    if(adminId) url += `&adminId=${adminId}`;
+    if(adminId && adminId !== 'null' && adminId !== 'undefined') url += `&adminId=${adminId}`;
 
     // Show loading only if not auto-refreshing
     const tbody = document.getElementById('tableBody');
@@ -125,8 +125,6 @@ function loadData(isSilent = false) {
                     </td>
                 </tr>
             `;
-            tbody.innerHTML += row;
-        });
             tbody.innerHTML += row;
         });
     })

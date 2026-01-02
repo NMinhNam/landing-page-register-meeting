@@ -143,7 +143,8 @@ public class VisitService {
                         
                         if (manualName != null) {
                              // Check if manual name matches any allowed unit name (Case Insensitive)
-                             boolean nameMatch = allowedUnitNames.stream().anyMatch(n -> n.equalsIgnoreCase(manualName));
+                             String finalManualName = manualName;
+                             boolean nameMatch = allowedUnitNames.stream().anyMatch(n -> n.equalsIgnoreCase(finalManualName));
                              if (nameMatch) {
                                  System.out.println("[SECURITY] Allowed by Name Match: " + manualName);
                                  return false; // Keep it

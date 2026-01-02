@@ -56,14 +56,25 @@ public class AdminVisitController {
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long adminId,
+            @RequestParam(required = false) String adminId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        System.out.println(">>> API /registrations CALLED. Params: unitId=" + unitId + ", week=" + week + ", adminId (raw)=" + adminId);
+        
+        Long parsedAdminId = null;
+        if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId) && !"undefined".equalsIgnoreCase(adminId)) {
+            try {
+                parsedAdminId = Long.parseLong(adminId);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid adminId format: " + adminId);
+            }
+        }
+
         // Note: Pagination is not fully implemented in the mapper yet for simplicity, 
         // returning full list for now or can use Mybatis Plus IPage if needed. 
         // Just returning list structure as per requirement.
-        List<Map<String, Object>> data = visitService.searchAdmin(unitId, week, province, status, keyword, adminId);
+        List<Map<String, Object>> data = visitService.searchAdmin(unitId, week, province, status, keyword, parsedAdminId);
         return Map.of("data", data, "total", data.size());
     }
 
