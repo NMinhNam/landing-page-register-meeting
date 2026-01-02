@@ -81,20 +81,46 @@ public interface VisitRegistrationMapper {
                                           @Param("keyword") String keyword);
 
     @Select("<script>" +
+            "WITH RECURSIVE unit_tree AS (" +
+            "  SELECT u.id " +
+            "  FROM unit u " +
+            "  JOIN admin_user au ON au.unit_id = u.id " +
+            "  WHERE au.id = #{adminId} " +
+            "  UNION ALL " +
+            "  SELECT child.id " +
+            "  FROM unit child " +
+            "  JOIN unit_tree parent ON child.parent_id = parent.id " +
+            ") " +
             "SELECT v.province, COUNT(*) as count " +
             "FROM visit_registration v " +
-            "WHERE 1=1 " +
+            "WHERE v.unit_id IN (SELECT id FROM unit_tree) " +
+            "<if test='month != null and month != \"\"'> AND DATE_FORMAT(v.created_at, '%m') = #{month} </if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "GROUP BY v.province" +
             "</script>")
-    List<Map<String, Object>> countByProvince(@Param("week") Integer week);
+    List<Map<String, Object>> countByProvince(@Param("adminId") Long adminId,
+                                              @Param("month") String month,
+                                              @Param("week") Integer week);
     
     @Select("<script>" +
+            "WITH RECURSIVE unit_tree AS (" +
+            "  SELECT u.id " +
+            "  FROM unit u " +
+            "  JOIN admin_user au ON au.unit_id = u.id " +
+            "  WHERE au.id = #{adminId} " +
+            "  UNION ALL " +
+            "  SELECT child.id " +
+            "  FROM unit child " +
+            "  JOIN unit_tree parent ON child.parent_id = parent.id " +
+            ") " +
             "SELECT status, COUNT(*) as count " +
             "FROM visit_registration v " +
-            "WHERE 1=1 " +
+            "WHERE v.unit_id IN (SELECT id FROM unit_tree) " +
+            "<if test='month != null and month != \"\"'> AND DATE_FORMAT(v.created_at, '%m') = #{month} </if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "GROUP BY status" +
             "</script>")
-    List<Map<String, Object>> countByStatus(@Param("week") Integer week);
+    List<Map<String, Object>> countByStatus(@Param("adminId") Long adminId,
+                                            @Param("month") String month,
+                                            @Param("week") Integer week);
 }

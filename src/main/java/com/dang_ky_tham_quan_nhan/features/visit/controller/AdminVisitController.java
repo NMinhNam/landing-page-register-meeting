@@ -93,7 +93,19 @@ public class AdminVisitController {
 
     @GetMapping("/stats")
     @Operation(summary = "Get Statistics", description = "Get aggregated statistics for visits.")
-    public Map<String, Object> getStats(@RequestParam(required = false) Integer week) {
-        return visitService.getStats(week);
+    public Map<String, Object> getStats(
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) Integer week,
+            @RequestParam(required = false) String adminId
+    ) {
+        Long parsedAdminId = null;
+        if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId) && !"undefined".equalsIgnoreCase(adminId)) {
+            try {
+                parsedAdminId = Long.parseLong(adminId);
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+        }
+        return visitService.getStats(month, week, parsedAdminId);
     }
 }

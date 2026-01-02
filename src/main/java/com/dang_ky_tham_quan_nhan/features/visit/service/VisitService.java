@@ -67,10 +67,15 @@ public class VisitService {
 
         reg.setRepresentativePhone(request.getRepresentativePhone());
         reg.setProvince(request.getProvince());
-        int currentWeek = calculateWeekOfMonth(LocalDateTime.now());
-        reg.setVisitWeek(currentWeek);
+        
+        // Calculate week and month
+        LocalDateTime now = LocalDateTime.now();
+        WeekMonth weekMonth = calculateWeekOfMonth(now);
+        reg.setVisitWeek(weekMonth.week);
+        // Store month for reference (format: MM, 01-12)
+        
         reg.setStatus(VisitStatus.PENDING.name());
-        reg.setCreatedAt(LocalDateTime.now());
+        reg.setCreatedAt(now);
         visitRegistrationMapper.insert(reg);
 
         if (request.getRelatives() != null) {
@@ -106,6 +111,12 @@ public class VisitService {
         }
         
         System.out.println("[DEBUG] Admin Found: " + admin.getUsername() + ", UnitID: " + admin.getUnitId());
+        
+        // Nếu admin không có unit_id, không có quyền xem danh sách
+        if (admin.getUnitId() == null) {
+            System.out.println("[DEBUG] Admin không có unit_id, trả về danh sách rỗng");
+            return new java.util.ArrayList<>();
+        }
         
         // Use WITH RECURSIVE in mapper to get all child units
         List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, month, week, province, status, keyword);
@@ -196,10 +207,25 @@ public class VisitService {
         }
     }
 
-    public Map<String, Object> getStats(Integer week) {
+    public Map<String, Object> getStats(String month, Integer week, Long adminId) {
+        if (adminId == null) {
+            return new HashMap<>();
+        }
+        
+        AdminUser admin = adminUserMapper.findById(adminId);
+        if (admin == null) {
+            throw new RuntimeException("Admin không hợp lệ");
+        }
+        
+        // Nếu admin không có unit_id, không có quyền xem thống kê
+        if (admin.getUnitId() == null) {
+            System.out.println("[DEBUG] Admin " + admin.getUsername() + " không có unit_id, trả về stats rỗng");
+            return Map.of("byProvince", new java.util.ArrayList<>(), "byStatus", new java.util.ArrayList<>());
+        }
+        
         Map<String, Object> stats = new HashMap<>();
-        stats.put("byProvince", visitRegistrationMapper.countByProvince(week));
-        stats.put("byStatus", visitRegistrationMapper.countByStatus(week));
+        stats.put("byProvince", visitRegistrationMapper.countByProvince(adminId, month, week));
+        stats.put("byStatus", visitRegistrationMapper.countByStatus(adminId, month, week));
         return stats;
     }
 
@@ -236,27 +262,61 @@ public class VisitService {
         return escaped;
     }
 
-    private int calculateWeekOfMonth(LocalDateTime date) {
-        int dayOfMonth = date.getDayOfMonth();
-        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+    // Helper class to return both week and month
+    private static class WeekMonth {
+        int week;
+        int month; // 1-12
         
-        int firstDayOfMonth = date.withDayOfMonth(1).getDayOfWeek().getValue();
+        WeekMonth(int week, int month) {
+            this.week = week;
+            this.month = month;
+        }
+    }
+
+    private WeekMonth calculateWeekOfMonth(LocalDateTime date) {
+        int dayOfMonth = date.getDayOfMonth();
+        int firstDayOfMonth = date.withDayOfMonth(1).getDayOfWeek().getValue(); // 1=Mon, 7=Sun
         
         if (firstDayOfMonth == 7) {
-            // First day is Sunday, so it belongs to previous month's last week
-            int week = (dayOfMonth - 1) / 7 + 1;
-            return week;
+            // First day is Sunday
+            if (dayOfMonth == 1) {
+                // Day 1 (Sunday) belongs to previous month's week
+                LocalDateTime prevMonth = date.minusMonths(1);
+                int daysInPrevMonth = java.time.YearMonth.from(prevMonth).lengthOfMonth();
+                int firstDayOfPrevMonth = prevMonth.withDayOfMonth(1).getDayOfWeek().getValue();
+                int weekOfPrevMonth;
+                
+                if (firstDayOfPrevMonth == 7) {
+                    weekOfPrevMonth = (daysInPrevMonth - 1) / 7 + 1;
+                } else {
+                    int daysBeforeFirstMondayPrev = (8 - firstDayOfPrevMonth) % 7;
+                    weekOfPrevMonth = (daysInPrevMonth - daysBeforeFirstMondayPrev) / 7 + 1;
+                }
+                return new WeekMonth(weekOfPrevMonth, prevMonth.getMonthValue());
+            } else {
+                return new WeekMonth((dayOfMonth - 1) / 7 + 1, date.getMonthValue());
+            }
         } else {
             // First day is Monday-Saturday
-            int daysUntilFirstMonday = (8 - firstDayOfMonth) % 7;
-            if (daysUntilFirstMonday == 0) daysUntilFirstMonday = 0;
+            int daysBeforeFirstMonday = (8 - firstDayOfMonth) % 7;
             
-            if (dayOfMonth <= daysUntilFirstMonday) {
+            if (dayOfMonth <= daysBeforeFirstMonday) {
                 // Before first Monday, belongs to previous month
-                return 0;
+                LocalDateTime prevMonth = date.minusMonths(1);
+                int daysInPrevMonth = java.time.YearMonth.from(prevMonth).lengthOfMonth();
+                int firstDayOfPrevMonth = prevMonth.withDayOfMonth(1).getDayOfWeek().getValue();
+                int weekOfPrevMonth;
+                
+                if (firstDayOfPrevMonth == 7) {
+                    weekOfPrevMonth = (daysInPrevMonth - 1) / 7 + 1;
+                } else {
+                    int daysBeforeFirstMondayPrev = (8 - firstDayOfPrevMonth) % 7;
+                    weekOfPrevMonth = (daysInPrevMonth - daysBeforeFirstMondayPrev) / 7 + 1;
+                }
+                return new WeekMonth(weekOfPrevMonth, prevMonth.getMonthValue());
             } else {
-                int week = (dayOfMonth - daysUntilFirstMonday - 1) / 7 + 1;
-                return week;
+                // From first Monday onwards
+                return new WeekMonth((dayOfMonth - daysBeforeFirstMonday) / 7 + 1, date.getMonthValue());
             }
         }
     }

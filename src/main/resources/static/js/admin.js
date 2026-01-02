@@ -88,7 +88,8 @@ function loadData(isSilent = false) {
 
         data.data.forEach(item => {
             let actionBtn = '';
-            if (role !== 'VIEWER') {
+            // Only show action buttons if status is PENDING and user is not VIEWER
+            if (role !== 'VIEWER' && item.status === 'PENDING') {
                 actionBtn = `
                     <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); openModal(${item.id})" title="Xử lý">
                         <i class="fas fa-edit"></i>
@@ -163,8 +164,10 @@ function formatDate(dateString) {
 function loadStats(week, month) {
     let url = '/api/v1/admin/stats';
     let params = [];
-    if(week) params.push(`week=${week}`);
     if(month) params.push(`month=${month}`);
+    if(week) params.push(`week=${week}`);
+    const adminId = localStorage.getItem('adminId');
+    if(adminId && adminId !== 'null' && adminId !== 'undefined') params.push(`adminId=${adminId}`);
     if(params.length > 0) url += `?${params.join('&')}`;
 
     fetch(url, {
