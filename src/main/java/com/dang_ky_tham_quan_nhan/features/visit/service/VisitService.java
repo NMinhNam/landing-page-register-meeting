@@ -50,13 +50,18 @@ public class VisitService {
         // Manual Soldier & Unit Logic - users input directly
         reg.setSoldierId(null);
         reg.setManualSoldierName(request.getManualSoldierName());
-        reg.setManualUnitName(request.getManualUnitName());
+        
+        String manualUnitName = request.getManualUnitName() != null ? request.getManualUnitName().trim() : null;
+        reg.setManualUnitName(manualUnitName);
         
         // Lookup Unit ID strictly by Name (Since frontend sends Name)
-        if (request.getManualUnitName() != null) {
-            Unit unit = unitMapper.findByName(request.getManualUnitName());
+        if (manualUnitName != null) {
+            Unit unit = unitMapper.findByName(manualUnitName);
             if (unit != null) {
+                System.out.println("[REGISTER] Found Unit ID: " + unit.getId() + " for Name: " + manualUnitName);
                 reg.setUnitId(unit.getId());
+            } else {
+                System.out.println("[REGISTER] WARNING: Unit NOT found for Name: " + manualUnitName);
             }
         }
 
@@ -106,8 +111,15 @@ public class VisitService {
             
             // 2. Get all child Unit IDs (Recursive)
             List<Long> targetUnitIds = null;
+            List<String> allowedUnitNames = new java.util.ArrayList<>();
+            
             if (rootUnitId != null) {
                 targetUnitIds = unitService.getAllChildUnitIds(rootUnitId);
+                // Fetch unit objects to get names for fallback matching
+                for(Long uid : targetUnitIds) {
+                    Unit u = unitMapper.findById(uid);
+                    if(u != null) allowedUnitNames.add(u.getName());
+                }
                 System.out.println("[DEBUG] Target Unit IDs (Allowed): " + targetUnitIds);
             }
     
@@ -125,7 +137,21 @@ public class VisitService {
                     
                     if (rowUnitId == null) {
                         // Safe approach: If Admin is strict Unit Admin, HIDE records with unknown unit.
-                        return true; 
+                        // FAILSAFE: Check manual name
+                        String manualName = (String) row.get("manual_unit_name");
+                        if (manualName == null) manualName = (String) row.get("manualUnitName");
+                        
+                        if (manualName != null) {
+                             // Check if manual name matches any allowed unit name (Case Insensitive)
+                             boolean nameMatch = allowedUnitNames.stream().anyMatch(n -> n.equalsIgnoreCase(manualName));
+                             if (nameMatch) {
+                                 System.out.println("[SECURITY] Allowed by Name Match: " + manualName);
+                                 return false; // Keep it
+                             }
+                        }
+                        
+                        System.out.println("[SECURITY BLOCK] Removing Orphan Record ID: " + row.get("id") + ", ManualName: " + manualName);
+                        return true; // Remove
                     }
                     
                     boolean isAllowed = allowedIds.contains(rowUnitId);

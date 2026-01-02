@@ -50,8 +50,9 @@ public interface VisitRegistrationMapper {
             "LEFT JOIN relative r ON v.id = r.visit_registration_id " +
             "WHERE 1=1 " +
             "<if test='unitIds != null and !unitIds.isEmpty()'>" +
-            " AND v.unit_id IN " + // Strict filter on v.unit_id
+            " AND (v.unit_id IN " + // Strict filter on v.unit_id
             "   <foreach item='uid' collection='unitIds' open='(' separator=',' close=')'>#{uid}</foreach>" +
+            "   OR v.unit_id IS NULL)" + // ALLOW ORPHANS for Java Check
             "</if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "<if test='province != null and province != \"\"'> AND v.province = #{province} </if>" +
