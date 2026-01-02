@@ -93,12 +93,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/admin-common.js}"></script>
 <script th:src="@{/js/admin-units.js}"></script>
-<script>
-    function logout() {
-        localStorage.removeItem('adminToken');
-        window.location.href = '/admin/login';
-    }
-</script>
 </body>
 </html>

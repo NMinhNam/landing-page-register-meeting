@@ -1,16 +1,4 @@
-// Auth Check
-const token = localStorage.getItem('adminToken');
-const storedAdminId = localStorage.getItem('adminId');
-
-// Force re-login if token exists but adminId is missing (Old session)
-if (token && !storedAdminId) {
-    alert("Phiên làm việc cũ đã hết hạn cấu trúc. Vui lòng đăng nhập lại.");
-    logout();
-}
-
-if (!token) {
-    window.location.href = '/admin/login';
-}
+// Auth Check handled by admin-common.js
 
 // Setup on load
 document.addEventListener('DOMContentLoaded', function() {
@@ -32,12 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 10000);
 });
 
-function logout() {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminRole');
-    localStorage.removeItem('adminUser');
-    window.location.href = '/admin/login';
-}
+
 
 let debounceTimer;
 function debounceLoadData() {
@@ -72,9 +55,7 @@ function loadData(isSilent = false) {
     }
 
     fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(data => {
@@ -166,7 +147,7 @@ function loadStats(week) {
     if(week) url += `?week=${week}`;
 
     fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(data => {
@@ -227,9 +208,7 @@ function exportData() {
     }
 
     fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+        headers: getHeaders()
     })
     .then(async resp => {
         if (!resp.ok) {
@@ -284,7 +263,7 @@ function showDetail(id) {
     detailModal.show();
 
     fetch(`/api/v1/admin/registrations/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(data => {
@@ -381,10 +360,7 @@ function submitStatus(status) {
 
     fetch(`/api/v1/admin/registrations/${id}/status`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
+        headers: getHeaders(),
         body: JSON.stringify({ status, note, adminId })
     })
         .then(async res => {
@@ -411,13 +387,10 @@ function submitStatus(status) {
     function deleteRegistration(id) {
         if (!confirm('Bạn có chắc chắn muốn xóa đơn đăng ký này? Hành động này không thể hoàn tác.')) return;
     
-        fetch(`/api/v1/admin/registrations/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-        .then(res => {
+            fetch(`/api/v1/admin/registrations/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            })        .then(res => {
             if (res.ok) {
                 loadData();
                 loadStats();

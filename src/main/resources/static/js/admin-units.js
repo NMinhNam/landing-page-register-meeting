@@ -1,8 +1,4 @@
-// Auth Check
-const token = localStorage.getItem('adminToken');
-if (!token) {
-    window.location.href = '/admin/login';
-}
+// Auth Check handled by admin-common.js
 
 document.addEventListener('DOMContentLoaded', function() {
     loadUnits();
@@ -12,7 +8,7 @@ let unitModal;
 
 function loadUnits() {
     fetch('/api/v1/admin/units', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(data => {
@@ -23,18 +19,24 @@ function loadUnits() {
             return;
         }
         data.forEach(unit => {
+            let actionBtns = '';
+            if (isAdmin()) {
+                actionBtns = `
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editUnit(${unit.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUnit(${unit.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>`;
+            }
+
             const row = `
                 <tr>
                     <td class="ps-4 text-muted">#${unit.id}</td>
                     <td class="fw-bold">${unit.name}</td>
                     <td class="d-none d-md-table-cell">${unit.parentId ? unit.parentId : '<span class="text-muted">-</span>'}</td>
                     <td class="text-end pe-4">
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editUnit(${unit.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUnit(${unit.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${actionBtns}
                     </td>
                 </tr>
             `;
@@ -56,7 +58,7 @@ function openModal() {
 
 function editUnit(id) {
     fetch(`/api/v1/admin/units/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(unit => {
@@ -81,10 +83,7 @@ function saveUnit() {
 
     fetch(url, {
         method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
+        headers: getHeaders(),
         body: JSON.stringify(payload)
     })
     .then(res => {
@@ -102,7 +101,7 @@ function deleteUnit(id) {
     
     fetch(`/api/v1/admin/units/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => {
         if (res.ok) {

@@ -1,8 +1,4 @@
-// Auth Check
-const token = localStorage.getItem('adminToken');
-if (!token) {
-    window.location.href = '/admin/login';
-}
+// Auth Check handled by admin-common.js
 
 document.addEventListener('DOMContentLoaded', function() {
     loadUnitsForSelect();
@@ -14,7 +10,7 @@ let unitsCache = [];
 
 function loadUnitsForSelect() {
     fetch('/api/v1/admin/units', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(data => {
@@ -47,7 +43,7 @@ function loadSoldiers() {
     if(keyword) url += `&keyword=${keyword}`;
 
     fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(data => {
@@ -65,6 +61,17 @@ function loadSoldiers() {
                 ? '<span class="badge bg-success">Đang công tác</span>' 
                 : '<span class="badge bg-secondary">Đã ra quân</span>';
 
+            let actionBtns = '';
+            if (isAdmin()) {
+                actionBtns = `
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editSoldier(${s.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSoldier(${s.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>`;
+            }
+
             const row = `
                 <tr>
                     <td class="ps-4 font-monospace text-muted">${s.code}</td>
@@ -72,12 +79,7 @@ function loadSoldiers() {
                     <td class="d-none d-md-table-cell">${unitName}</td>
                     <td>${statusBadge}</td>
                     <td class="text-end pe-4">
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editSoldier(${s.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSoldier(${s.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        ${actionBtns}
                     </td>
                 </tr>
             `;
@@ -100,7 +102,7 @@ function openModal() {
 
 function editSoldier(id) {
     fetch(`/api/v1/admin/soldiers/${id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => res.json())
     .then(s => {
@@ -134,10 +136,7 @@ function saveSoldier() {
 
     fetch(url, {
         method: method,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        },
+        headers: getHeaders(),
         body: JSON.stringify(payload)
     })
     .then(res => {
@@ -155,7 +154,7 @@ function deleteSoldier(id) {
     
     fetch(`/api/v1/admin/soldiers/${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: getHeaders()
     })
     .then(res => {
         if (res.ok) {
