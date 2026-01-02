@@ -67,7 +67,7 @@ public class VisitService {
 
         reg.setRepresentativePhone(request.getRepresentativePhone());
         reg.setProvince(request.getProvince());
-        int currentWeek = (LocalDateTime.now().getDayOfMonth() - 1) / 7 + 1;
+        int currentWeek = calculateWeekOfMonth(LocalDateTime.now());
         reg.setVisitWeek(currentWeek);
         reg.setStatus(VisitStatus.PENDING.name());
         reg.setCreatedAt(LocalDateTime.now());
@@ -90,81 +90,29 @@ public class VisitService {
         return visitRegistrationMapper.findByPhone(phone);
     }
 
-        public List<Map<String, Object>> searchAdmin(Long unitId, Integer week, String province, String status, String keyword, Long adminId) {
-            System.out.println("[DEBUG] searchAdmin called. Params: unitId=" + unitId + ", adminId=" + adminId);
-            
-            // 1. Determine the root Unit ID to filter by
-            Long rootUnitId = unitId;
-    
-            // Security Check: Enforce Unit Filter if Admin belongs to a specific unit
-            if (adminId != null) {
-                AdminUser admin = adminUserMapper.findById(adminId);
-                if (admin != null) {
-                    System.out.println("[DEBUG] Admin Found: " + admin.getUsername() + ", UnitID: " + admin.getUnitId());
-                    if (admin.getUnitId() != null) {
-                        rootUnitId = admin.getUnitId(); // FORCE FILTER
-                    }
-                } else {
-                     System.out.println("[DEBUG] Admin NOT found for ID: " + adminId);
-                }
-            }
-            
-            // 2. Get all child Unit IDs (Recursive)
-            List<Long> targetUnitIds = null;
-            List<String> allowedUnitNames = new java.util.ArrayList<>();
-            
-            if (rootUnitId != null) {
-                targetUnitIds = unitService.getAllChildUnitIds(rootUnitId);
-                // Fetch unit objects to get names for fallback matching
-                for(Long uid : targetUnitIds) {
-                    Unit u = unitMapper.findById(uid);
-                    if(u != null) allowedUnitNames.add(u.getName());
-                }
-                System.out.println("[DEBUG] Target Unit IDs (Allowed): " + targetUnitIds);
-            }
-    
-            List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(targetUnitIds, week, province, status, keyword);
-            
-            // FINAL SECURITY CHECK (Java Level)
-            if (targetUnitIds != null && !targetUnitIds.isEmpty()) {
-                List<Long> allowedIds = targetUnitIds;
-                results.removeIf(row -> {
-                    // Try getting ID with both naming conventions (snake_case vs camelCase)
-                    Object objId = row.get("unit_id");
-                    if (objId == null) objId = row.get("unitId"); // Case for map-underscore-to-camel-case=true
-                    
-                    Long rowUnitId = (objId instanceof Number) ? ((Number) objId).longValue() : null;
-                    
-                    if (rowUnitId == null) {
-                        // Safe approach: If Admin is strict Unit Admin, HIDE records with unknown unit.
-                        // FAILSAFE: Check manual name
-                        String manualName = (String) row.get("manual_unit_name");
-                        if (manualName == null) manualName = (String) row.get("manualUnitName");
-                        
-                        if (manualName != null) {
-                             // Check if manual name matches any allowed unit name (Case Insensitive)
-                             String finalManualName = manualName;
-                             boolean nameMatch = allowedUnitNames.stream().anyMatch(n -> n.equalsIgnoreCase(finalManualName));
-                             if (nameMatch) {
-                                 System.out.println("[SECURITY] Allowed by Name Match: " + manualName);
-                                 return false; // Keep it
-                             }
-                        }
-                        
-                        System.out.println("[SECURITY BLOCK] Removing Orphan Record ID: " + row.get("id") + ", ManualName: " + manualName);
-                        return true; // Remove
-                    }
-                    
-                    boolean isAllowed = allowedIds.contains(rowUnitId);
-                    if (!isAllowed) {
-                         System.out.println("[SECURITY BLOCK] Removed Record ID: " + row.get("id") + " with UnitID: " + rowUnitId);
-                    }
-                    return !isAllowed;
-                });
-            }
-            
-            return results;
+        public List<Map<String, Object>> searchAdmin(Long unitId, String month, Integer week, String province, String status, String keyword, Long adminId) {
+        System.out.println("[DEBUG] searchAdmin called. Params: adminId=" + adminId + ", month=" + month + ", week=" + week);
+        
+        if (adminId == null) {
+            System.out.println("[DEBUG] No adminId provided, returning empty list");
+            return new java.util.ArrayList<>();
         }
+        
+        // Verify admin exists
+        AdminUser admin = adminUserMapper.findById(adminId);
+        if (admin == null) {
+            System.out.println("[DEBUG] Admin NOT found for ID: " + adminId);
+            throw new RuntimeException("Admin không hợp lệ");
+        }
+        
+        System.out.println("[DEBUG] Admin Found: " + admin.getUsername() + ", UnitID: " + admin.getUnitId());
+        
+        // Use WITH RECURSIVE in mapper to get all child units
+        List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, month, week, province, status, keyword);
+        System.out.println("[DEBUG] Found " + results.size() + " registrations");
+        
+        return results;
+    }
     public Map<String, Object> getRegistrationDetail(Long id) {
         VisitRegistration reg = visitRegistrationMapper.findById(id);
         if (reg == null) {
@@ -255,8 +203,8 @@ public class VisitService {
         return stats;
     }
 
-    public byte[] exportRegistrations(Long unitId, Integer week, String province, String status, Long adminId) {
-        List<Map<String, Object>> data = searchAdmin(unitId, week, province, status, null, adminId);
+    public byte[] exportRegistrations(Long unitId, String month, Integer week, String province, String status, Long adminId) {
+        List<Map<String, Object>> data = searchAdmin(unitId, month, week, province, status, null, adminId);
         
         StringBuilder csv = new StringBuilder();
         // Add BOM for Excel UTF-8 compatibility
@@ -286,5 +234,30 @@ public class VisitService {
             return "\"" + escaped + "\"";
         }
         return escaped;
+    }
+
+    private int calculateWeekOfMonth(LocalDateTime date) {
+        int dayOfMonth = date.getDayOfMonth();
+        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+        
+        int firstDayOfMonth = date.withDayOfMonth(1).getDayOfWeek().getValue();
+        
+        if (firstDayOfMonth == 7) {
+            // First day is Sunday, so it belongs to previous month's last week
+            int week = (dayOfMonth - 1) / 7 + 1;
+            return week;
+        } else {
+            // First day is Monday-Saturday
+            int daysUntilFirstMonday = (8 - firstDayOfMonth) % 7;
+            if (daysUntilFirstMonday == 0) daysUntilFirstMonday = 0;
+            
+            if (dayOfMonth <= daysUntilFirstMonday) {
+                // Before first Monday, belongs to previous month
+                return 0;
+            } else {
+                int week = (dayOfMonth - daysUntilFirstMonday - 1) / 7 + 1;
+                return week;
+            }
+        }
     }
 }

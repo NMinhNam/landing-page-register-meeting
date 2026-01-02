@@ -27,22 +27,20 @@ public class AdminVisitController {
     @Operation(summary = "Export Registrations", description = "Export registrations to CSV.")
     public ResponseEntity<byte[]> exportRegistrations(
             @RequestParam(required = false) Long unitId,
+            @RequestParam(required = false) String month,
             @RequestParam(required = false) Integer week,
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long adminId
     ) {
-        System.out.println("[EXPORT] Request received. AdminId=" + adminId + ", Week=" + week);
         try {
-            byte[] content = visitService.exportRegistrations(unitId, week, province, status, adminId);
-            System.out.println("[EXPORT] Success. Bytes: " + content.length);
+            byte[] content = visitService.exportRegistrations(unitId, month, week, province, status, adminId);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ds_dang_ky_tham_gap.csv\"")
                     .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                     .body(content);
         } catch (Exception e) {
-            System.err.println("[EXPORT] Error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
@@ -52,6 +50,7 @@ public class AdminVisitController {
     @Operation(summary = "Search Registrations", description = "Filter and list visit registrations.")
     public Map<String, Object> getRegistrations(
             @RequestParam(required = false) Long unitId,
+            @RequestParam(required = false) String month,
             @RequestParam(required = false) Integer week,
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
@@ -60,21 +59,17 @@ public class AdminVisitController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        System.out.println(">>> API /registrations CALLED. Params: unitId=" + unitId + ", week=" + week + ", adminId (raw)=" + adminId);
-        
+
         Long parsedAdminId = null;
         if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId) && !"undefined".equalsIgnoreCase(adminId)) {
             try {
                 parsedAdminId = Long.parseLong(adminId);
             } catch (NumberFormatException e) {
-                System.err.println("Invalid adminId format: " + adminId);
+
             }
         }
 
-        // Note: Pagination is not fully implemented in the mapper yet for simplicity, 
-        // returning full list for now or can use Mybatis Plus IPage if needed. 
-        // Just returning list structure as per requirement.
-        List<Map<String, Object>> data = visitService.searchAdmin(unitId, week, province, status, keyword, parsedAdminId);
+        List<Map<String, Object>> data = visitService.searchAdmin(unitId, month, week, province, status, keyword, parsedAdminId);
         return Map.of("data", data, "total", data.size());
     }
 

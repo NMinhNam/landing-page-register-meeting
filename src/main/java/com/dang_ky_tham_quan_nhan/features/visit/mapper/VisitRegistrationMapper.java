@@ -38,6 +38,16 @@ public interface VisitRegistrationMapper {
     List<Map<String, Object>> findByPhone(@Param("phone") String phone);
 
     @Select("<script>" +
+            "WITH RECURSIVE unit_tree AS (" +
+            "  SELECT u.id " +
+            "  FROM unit u " +
+            "  JOIN admin_user au ON au.unit_id = u.id " +
+            "  WHERE au.id = #{adminId} " +
+            "  UNION ALL " +
+            "  SELECT child.id " +
+            "  FROM unit child " +
+            "  JOIN unit_tree parent ON child.parent_id = parent.id " +
+            ") " +
             "SELECT v.*, v.unit_id, " +
             "COALESCE(s.name, v.manual_soldier_name) as soldier_name, " +
             "GROUP_CONCAT(r.name SEPARATOR ', ') as relative_name, " +
@@ -46,14 +56,10 @@ public interface VisitRegistrationMapper {
             "COALESCE(u.name, v.manual_unit_name) as unit_name " +
             "FROM visit_registration v " +
             "LEFT JOIN soldier s ON v.soldier_id = s.id " +
-            "LEFT JOIN unit u ON v.unit_id = u.id " + // JOIN directly via v.unit_id
+            "LEFT JOIN unit u ON v.unit_id = u.id " +
             "LEFT JOIN relative r ON v.id = r.visit_registration_id " +
-            "WHERE 1=1 " +
-            "<if test='unitIds != null and !unitIds.isEmpty()'>" +
-            " AND (v.unit_id IN " + // Strict filter on v.unit_id
-            "   <foreach item='uid' collection='unitIds' open='(' separator=',' close=')'>#{uid}</foreach>" +
-            "   OR v.unit_id IS NULL)" + // ALLOW ORPHANS for Java Check
-            "</if>" +
+            "WHERE v.unit_id IN (SELECT id FROM unit_tree) " +
+            "<if test='month != null and month != \"\"'> AND DATE_FORMAT(v.created_at, '%m') = #{month} </if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "<if test='province != null and province != \"\"'> AND v.province = #{province} </if>" +
             "<if test='status != null and status != \"\"'> AND v.status = #{status} </if>" +
@@ -67,7 +73,8 @@ public interface VisitRegistrationMapper {
             "GROUP BY v.id " +
             "ORDER BY v.created_at DESC" +
             "</script>")
-    List<Map<String, Object>> searchAdmin(@Param("unitIds") List<Long> unitIds, 
+    List<Map<String, Object>> searchAdmin(@Param("adminId") Long adminId,
+                                          @Param("month") String month,
                                           @Param("week") Integer week, 
                                           @Param("province") String province, 
                                           @Param("status") String status,

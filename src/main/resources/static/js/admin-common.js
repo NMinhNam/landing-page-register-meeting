@@ -28,3 +28,14 @@ function getHeaders() {
 function isAdmin() {
     return localStorage.getItem('adminRole') !== 'VIEWER';
 }
+
+// 5. Display username in navbar
+document.addEventListener('DOMContentLoaded', function() {
+    const username = localStorage.getItem('adminUser');
+    if (username) {
+        const usernameDisplay = document.getElementById('usernameDisplay');
+        if (usernameDisplay) {
+            usernameDisplay.textContent = username;
+        }
+    }
+});

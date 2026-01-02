@@ -2,6 +2,7 @@
 
 // Setup on load
 document.addEventListener('DOMContentLoaded', function() {
+    loadProvinces();
     loadData();
     loadStats();
     
@@ -20,6 +21,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 10000);
 });
 
+function loadProvinces() {
+    fetch('/data/provinces.json')
+        .then(res => res.json())
+        .then(provinces => {
+            const filterProvinceSelect = document.getElementById('filterProvince');
+            
+            // Add provinces to select dropdown
+            provinces.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.name;
+                option.textContent = p.name;
+                filterProvinceSelect.appendChild(option);
+            });
+        })
+        .catch(err => console.error('Error loading provinces:', err));
+}
+
 
 
 let debounceTimer;
@@ -31,6 +49,7 @@ function debounceLoadData() {
 }
 
 function loadData(isSilent = false) {
+    const month = document.getElementById('filterMonth').value;
     const week = document.getElementById('filterWeek').value;
     const status = document.getElementById('filterStatus').value;
     const province = document.getElementById('filterProvince').value;
@@ -38,10 +57,11 @@ function loadData(isSilent = false) {
     const role = localStorage.getItem('adminRole');
     const adminId = localStorage.getItem('adminId');
     
-    // Also reload stats when data reloads (filtered by week)
-    if(!isSilent) loadStats(week);
+    // Also reload stats when data reloads (filtered by week or month)
+    if(!isSilent) loadStats(week, month);
 
     let url = `/api/v1/admin/registrations?page=1&size=50`;
+    if(month) url += `&month=${month}`;
     if(week) url += `&week=${week}`;
     if(status) url += `&status=${status}`;
     if(province) url += `&province=${encodeURIComponent(province)}`;
@@ -140,9 +160,12 @@ function formatDate(dateString) {
     });
 }
 
-function loadStats(week) {
+function loadStats(week, month) {
     let url = '/api/v1/admin/stats';
-    if(week) url += `?week=${week}`;
+    let params = [];
+    if(week) params.push(`week=${week}`);
+    if(month) params.push(`month=${month}`);
+    if(params.length > 0) url += `?${params.join('&')}`;
 
     fetch(url, {
         headers: getHeaders()
@@ -182,15 +205,17 @@ function loadStats(week) {
 }
 
 function exportData() {
+    const month = document.getElementById('filterMonth').value;
     const week = document.getElementById('filterWeek').value;
     const status = document.getElementById('filterStatus').value;
     const province = document.getElementById('filterProvince').value;
     const adminId = localStorage.getItem('adminId');
 
-    console.log('[Export] Starting export...', { week, status, province, adminId });
+    console.log('[Export] Starting export...', { month, week, status, province, adminId });
 
     let url = `/api/v1/admin/export/registrations?v=1`;
     if(adminId && adminId !== 'null') url += `&adminId=${adminId}`;
+    if(month) url += `&month=${month}`;
     if(week) url += `&week=${week}`;
     if(status) url += `&status=${status}`;
     if(province) url += `&province=${encodeURIComponent(province)}`;
