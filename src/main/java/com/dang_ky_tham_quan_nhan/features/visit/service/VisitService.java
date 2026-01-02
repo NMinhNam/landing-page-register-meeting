@@ -174,22 +174,27 @@ public class VisitService {
             throw new RuntimeException("Admin không hợp lệ hoặc phiên làm việc hết hạn");
         }
 
-        // Nếu admin có unitId (Admin cấp đơn vị), kiểm tra xem đơn đăng ký có thuộc đơn vị đó không
+        // 1. Role Check: Only ADMIN can update status
+        if (!"ADMIN".equals(admin.getRole())) {
+            throw new RuntimeException("Bạn chỉ có quyền xem, không được phép duyệt/từ chối.");
+        }
+
+        // 2. Unit Hierarchy Check
         if (admin.getUnitId() != null) {
-            // Lấy tên đơn vị của admin để so sánh
-            Unit adminUnit = unitMapper.findById(admin.getUnitId());
-            String adminUnitName = (adminUnit != null) ? adminUnit.getName() : "";
-
-            boolean isSameUnit = false;
-            // So sánh manualUnitName hoặc thông qua soldier_id (nếu có)
-            if (adminUnitName.equalsIgnoreCase(reg.getManualUnitName())) {
-                isSameUnit = true;
-            }
-
-            // Bạn có thể thêm logic check soldier.unitId ở đây nếu cần
-
-            if (!isSameUnit) {
-                throw new RuntimeException("Bạn không có quyền xử lý đơn của đơn vị khác");
+            List<Long> allowedUnitIds = unitService.getAllChildUnitIds(admin.getUnitId());
+            
+            // If registration has no unitId (unlikely with new logic, but possible for old data), block it
+            if (reg.getUnitId() == null) {
+                 // Fallback: Check name match if ID is missing (legacy support)
+                 Unit adminUnit = unitMapper.findById(admin.getUnitId());
+                 String adminUnitName = (adminUnit != null) ? adminUnit.getName() : "";
+                 if (!adminUnitName.equalsIgnoreCase(reg.getManualUnitName())) {
+                     throw new RuntimeException("Đơn này không thuộc phạm vi quản lý của bạn (Không xác định đơn vị).");
+                 }
+            } else {
+                if (!allowedUnitIds.contains(reg.getUnitId())) {
+                    throw new RuntimeException("Bạn không có quyền xử lý đơn của đơn vị này (nằm ngoài phạm vi quản lý).");
+                }
             }
         }
 
