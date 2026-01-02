@@ -127,7 +127,9 @@ function loadData(isSilent = false) {
                         <a href="tel:${item.relative_phone}" class="text-decoration-none fw-bold text-dark" onclick="event.stopPropagation()"><i class="fas fa-phone-alt me-1 text-muted"></i>${item.relative_phone}</a>
                     </td>
                     <td class="d-none d-md-table-cell">
-                        <div>Tuần <span class="fw-bold">${item.visit_week}</span></div>
+                        <span class="badge bg-info">${getWeekMonthDisplay(item.visit_week, item.created_at)}</span>
+                    </td>
+                    <td class="d-none d-md-table-cell">
                         <small class="text-muted">${item.province || '-'}</small>
                     </td>
                     
@@ -159,6 +161,39 @@ function formatDate(dateString) {
         year: 'numeric', month: '2-digit', day: '2-digit', 
         hour: '2-digit', minute: '2-digit' 
     });
+}
+
+function getWeekMonthDisplay(week, dateString) {
+    if (!dateString) return `Tuần ${week}`;
+    
+    const date = new Date(dateString);
+    const dayOfMonth = date.getDate();
+    
+    // Get first day of month (1=Monday, 7=Sunday)
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const firstDayOfWeek = firstDay.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+    const firstDayOfMonth = (firstDayOfWeek === 0) ? 7 : firstDayOfWeek; // Convert to 1=Monday, 7=Sunday
+    
+    let month = date.getMonth() + 1; // 1-12
+    
+    // Logic: Nếu ngày nằm trước thứ 2 đầu tiên thì thuộc tháng trước
+    if (firstDayOfMonth === 7) {
+        // Ngày 1 là CN, ngày 2 trở đi là tuần 1 của tháng này
+        if (dayOfMonth === 1) {
+            month = month - 1; // Ngày 1 (CN) thuộc tháng trước
+            if (month === 0) month = 12;
+        }
+    } else {
+        // Ngày 1 là Thứ 2-7
+        const daysBeforeFirstMonday = (8 - firstDayOfMonth) % 7;
+        if (dayOfMonth <= daysBeforeFirstMonday) {
+            month = month - 1; // Thuộc tháng trước
+            if (month === 0) month = 12;
+        }
+    }
+    
+    const monthStr = month.toString().padStart(2, '0');
+    return `${week}/${monthStr}`;
 }
 
 function loadStats(week, month) {
@@ -273,6 +308,7 @@ function getStatusBadge(status) {
     if(status === 'PENDING') return '<span class="status-badge bg-pending">Chờ duyệt</span>';
     if(status === 'APPROVED') return '<span class="status-badge bg-approved">Đồng ý</span>';
     if(status === 'REJECTED') return '<span class="status-badge bg-rejected">Từ chối</span>';
+    if(status === 'CANCELLED') return '<span class="status-badge bg-secondary">Đơn hủy</span>';
     return status;
 }
 
