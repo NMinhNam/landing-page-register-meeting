@@ -39,7 +39,7 @@ public class PublicVisitController {
     public List<Map<String, Object>> search(@RequestParam(required = false) String phone,
                                             @RequestParam(required = false) String code) {
         List<Map<String, Object>> results = visitService.searchRegistration(phone, code);
-        
+
         return results.stream().map(row -> {
             Map<String, Object> response = new HashMap<>();
             response.put("id", row.get("id"));
@@ -50,6 +50,16 @@ public class PublicVisitController {
             response.put("status", row.get("status"));
             response.put("note", row.get("note"));
             response.put("createdAt", row.get("created_at"));
+            response.put("approvedAt", row.get("approved_at"));
+
+            // Add relatives data if available
+            if (row.get("id") != null) {
+                Long registrationId = Long.valueOf(row.get("id").toString());
+                response.put("relatives", visitService.getRelativesByRegistrationId(registrationId));
+            } else {
+                response.put("relatives", null);
+            }
+
             return response;
         }).toList();
     }

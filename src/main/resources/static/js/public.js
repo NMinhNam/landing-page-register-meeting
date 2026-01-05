@@ -501,12 +501,16 @@ function updateStatusUI(data) {
     const msg = document.getElementById('statusMessage');
     const pollingInd = document.getElementById('pollingIndicator');
     const noteSection = document.getElementById('adminNoteSection');
+    const approvalMessage = document.getElementById('approvalMessage');
+    const approvalText = document.getElementById('approvalText');
+    const relativesListSection = document.getElementById('relativesListSection');
+    const relativesList = document.getElementById('relativesList');
 
     document.getElementById('detailCode').textContent = `REG-${data.id}`;
     document.getElementById('detailRelative').textContent = data.relative_name || data.relativeName || '...';
     document.getElementById('detailSoldier').textContent = data.soldierName || data.manual_soldier_name;
     document.getElementById('detailUnit').textContent = data.unitName || data.manual_unit_name || 'N/A';
-    
+
     // Clear dynamic buttons first
     const btnContainer = document.getElementById('statusSection').querySelector('.card-body');
     const existingCancel = document.getElementById('btnCancelReg');
@@ -521,6 +525,8 @@ function updateStatusUI(data) {
         msg.textContent = 'Hồ sơ của bạn đang chờ đơn vị kiểm tra. Vui lòng giữ liên lạc.';
         pollingInd.style.display = 'block';
         noteSection.style.display = 'none';
+        approvalMessage.style.display = 'none';
+        relativesListSection.style.display = 'none';
 
         // Add Cancel Button
         const btnCancel = document.createElement('button');
@@ -531,7 +537,7 @@ function updateStatusUI(data) {
             cancelRegistration(data.id);
         };
         btnContainer.appendChild(btnCancel);
-        
+
     } else {
         pollingInd.style.display = 'none';
 
@@ -541,17 +547,42 @@ function updateStatusUI(data) {
             title.textContent = 'Đã được chấp thuận!';
             msg.textContent = 'Chúc mừng! Đơn vị đã đồng ý cho bạn vào thăm. Vui lòng mang theo giấy tờ tùy thân.';
             noteSection.style.display = 'none';
+
+            // Show approval message with date
+            approvalMessage.style.display = 'block';
+            if (data.visitWeek) {
+                // Use the visitWeek from the API which is calculated using the backend logic
+                // The month should be derived from the created_at date since that's when the visit week was calculated
+                let month, year;
+                if (data.created_at) {
+                    const createdAtDate = new Date(data.created_at);
+                    month = createdAtDate.getMonth() + 1; // Month from creation date
+                    year = createdAtDate.getFullYear(); // Year from creation date
+                } else {
+                    month = new Date().getMonth() + 1; // Current month as fallback
+                    year = new Date().getFullYear(); // Current year as fallback
+                }
+                approvalText.textContent = `Đã được duyệt thăm quân nhân vào tuần ${data.visitWeek} tháng ${month} năm ${year}.`;
+            } else {
+                approvalText.textContent = 'Đã được duyệt thăm quân nhân vào tuần ... tháng ... năm ....';
+            }
+
+            // Show relatives list with masked ID numbers
+            relativesListSection.style.display = 'block';
+            updateRelativesList(data.relatives || []);
         } else if (data.status === 'REJECTED') {
             iconContainer.innerHTML = '<i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>';
             title.className = 'fw-bold text-danger';
             title.textContent = 'Đã bị từ chối';
             msg.textContent = 'Rất tiếc, yêu cầu của bạn chưa được chấp thuận lần này.';
+            approvalMessage.style.display = 'none';
+            relativesListSection.style.display = 'none';
 
             // Always show note section for REJECTED
             noteSection.style.display = 'block';
             const noteText = data.note || 'Không có lý do cụ thể từ đơn vị.';
             document.getElementById('detailNote').textContent = noteText;
-            
+
             // Add Re-Register Button
             const btnReReg = document.createElement('button');
             btnReReg.id = 'btnReRegister';
@@ -565,8 +596,10 @@ function updateStatusUI(data) {
             title.className = 'fw-bold text-secondary';
             title.textContent = 'Đã hủy';
             msg.textContent = 'Bạn đã hủy đơn đăng ký này.';
+            approvalMessage.style.display = 'none';
+            relativesListSection.style.display = 'none';
             noteSection.style.display = 'none';
-            
+
              // Add Re-Register Button for Cancelled too
             const btnReReg = document.createElement('button');
             btnReReg.id = 'btnReRegister';
@@ -599,4 +632,94 @@ function cancelRegistration(id) {
 
     function showLoading(isLoading) {
     document.getElementById('loadingOverlay').style.display = isLoading ? 'flex' : 'none';
+}
+
+// Helper function to get the week number of a date using the same logic as the backend
+function getWeekNumber(date) {
+    const dayOfMonth = date.getDate();
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+    // Adjust for Sunday (0) to be 7 to match backend logic (1=Mon, 2=Tue, ..., 7=Sun)
+    const firstDayOfMonthValue = firstDayOfMonth === 0 ? 7 : firstDayOfMonth;
+
+    if (firstDayOfMonthValue === 7) {
+        // First day is Sunday
+        if (dayOfMonth === 1) {
+            // Day 1 (Sunday) belongs to previous month's week
+            const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+            const daysInPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
+            const firstDayOfPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1).getDay();
+            const firstDayOfPrevMonthValue = firstDayOfPrevMonth === 0 ? 7 : firstDayOfPrevMonth;
+
+            let weekOfPrevMonth;
+            if (firstDayOfPrevMonthValue === 7) {
+                weekOfPrevMonth = Math.floor((daysInPrevMonth - 1) / 7) + 1;
+            } else {
+                const daysBeforeFirstMondayPrev = (8 - firstDayOfPrevMonthValue) % 7;
+                weekOfPrevMonth = Math.floor((daysInPrevMonth - daysBeforeFirstMondayPrev) / 7) + 1;
+            }
+            return weekOfPrevMonth;
+        } else {
+            return Math.floor((dayOfMonth - 1) / 7) + 1;
+        }
+    } else {
+        // First day is Monday-Saturday
+        const daysBeforeFirstMonday = (8 - firstDayOfMonthValue) % 7;
+
+        if (dayOfMonth <= daysBeforeFirstMonday) {
+            // Before first Monday, belongs to previous month
+            const prevMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1);
+            const daysInPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate();
+            const firstDayOfPrevMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1).getDay();
+            const firstDayOfPrevMonthValue = firstDayOfPrevMonth === 0 ? 7 : firstDayOfPrevMonth;
+
+            let weekOfPrevMonth;
+            if (firstDayOfPrevMonthValue === 7) {
+                weekOfPrevMonth = Math.floor((daysInPrevMonth - 1) / 7) + 1;
+            } else {
+                const daysBeforeFirstMondayPrev = (8 - firstDayOfPrevMonthValue) % 7;
+                weekOfPrevMonth = Math.floor((daysInPrevMonth - daysBeforeFirstMondayPrev) / 7) + 1;
+            }
+            return weekOfPrevMonth;
+        } else {
+            // From first Monday onwards
+            return Math.floor((dayOfMonth - daysBeforeFirstMonday) / 7) + 1;
+        }
+    }
+}
+
+// Helper function to mask ID numbers (show first 3 and last 3 digits)
+function maskIdNumber(idNumber) {
+    if (!idNumber || idNumber.length < 6) {
+        return idNumber; // Return as is if too short
+    }
+    const firstThree = idNumber.substring(0, 3);
+    const lastThree = idNumber.substring(idNumber.length - 3);
+    const middleMask = '*'.repeat(idNumber.length - 6);
+    return firstThree + middleMask + lastThree;
+}
+
+// Function to update the relatives list with masked ID numbers
+function updateRelativesList(relatives) {
+    const relativesList = document.getElementById('relativesList');
+    relativesList.innerHTML = ''; // Clear existing list
+
+    if (relatives.length === 0) {
+        const emptyItem = document.createElement('li');
+        emptyItem.className = 'list-group-item text-muted';
+        emptyItem.textContent = 'Không có thông tin người thân';
+        relativesList.appendChild(emptyItem);
+        return;
+    }
+
+    relatives.forEach(relative => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+
+        const maskedId = maskIdNumber(relative.idNumber || '');
+        const relativeInfo = `${relative.name} - ${maskedId} (${relative.relationship})`;
+
+        listItem.textContent = relativeInfo;
+        relativesList.appendChild(listItem);
+    });
 }

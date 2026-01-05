@@ -397,7 +397,7 @@ function showDetail(id) {
                         ${data.approvedAt ? `<small class="text-muted" style="font-size: 0.7rem;">Xử lý: ${formatDate(data.approvedAt)}</small>` : ''}
                     </div>
                     <div class="p-3 bg-light rounded border-start border-4 border-primary mx-2">
-                        <p class="mb-0 small fw-medium text-dark">${data.note || 'Không có ghi chú từ quản lý'}</p>
+                        <p class="mb-0 small fw-medium text-dark">${data.note || 'Không có ghi chú từ người thăm'}</p>
                     </div>
                 </div>
             </div>

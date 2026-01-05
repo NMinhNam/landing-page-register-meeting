@@ -168,7 +168,13 @@
                 </div>
                 <h4 class="fw-bold" id="statusTitle">Đang chờ duyệt...</h4>
                 <p class="text-muted small" id="statusMessage">Hồ sơ của bạn đã được gửi và đang chờ đơn vị phê duyệt.</p>
-                
+
+                <!-- Approval Message (Hidden by default, shown when approved) -->
+                <div id="approvalMessage" class="alert alert-success mt-3" style="display: none;">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span id="approvalText">Đã được duyệt thăm quân nhân vào tuần ... tháng ... năm ....</span>
+                </div>
+
                 <!-- Details Card -->
                 <div class="bg-light p-3 rounded text-start mt-4">
                     <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
@@ -187,11 +193,19 @@
                         <span class="text-muted small">Đơn vị:</span>
                         <span class="fw-bold" id="detailUnit">...</span>
                     </div>
-                    
+
                     <!-- Admin Note Section -->
                     <div id="adminNoteSection" class="mt-2 pt-2 border-top border-danger" style="display: none;">
                         <span class="text-danger small fw-bold">Lý do / Ghi chú:</span>
                         <p class="text-danger small mb-0 fst-italic" id="detailNote">...</p>
+                    </div>
+
+                    <!-- Relatives List (Hidden by default, shown when approved) -->
+                    <div id="relativesListSection" class="mt-3" style="display: none;">
+                        <h6 class="text-primary border-bottom pb-2 mb-2 fw-bold">Danh sách người thân:</h6>
+                        <ul class="list-group" id="relativesList">
+                            <!-- Relatives will be populated by JavaScript -->
+                        </ul>
                     </div>
                 </div>
 

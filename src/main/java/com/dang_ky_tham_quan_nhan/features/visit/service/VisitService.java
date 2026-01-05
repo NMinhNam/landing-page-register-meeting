@@ -95,6 +95,10 @@ public class VisitService {
         return visitRegistrationMapper.findByPhone(phone);
     }
 
+    public List<Relative> getRelativesByRegistrationId(Long registrationId) {
+        return relativeMapper.findByRegistrationId(registrationId);
+    }
+
         public List<Map<String, Object>> searchAdmin(Long unitId, String month, Integer week, String province, String status, String keyword, Long adminId) {
 
         if (adminId == null) {
