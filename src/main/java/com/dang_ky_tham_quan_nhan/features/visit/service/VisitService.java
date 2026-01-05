@@ -96,22 +96,18 @@ public class VisitService {
     }
 
         public List<Map<String, Object>> searchAdmin(Long unitId, String month, Integer week, String province, String status, String keyword, Long adminId) {
-        System.out.println("[DEBUG] searchAdmin called. Params: adminId=" + adminId + ", month=" + month + ", week=" + week);
-        
+
         if (adminId == null) {
-            System.out.println("[DEBUG] No adminId provided, returning empty list");
             return new java.util.ArrayList<>();
         }
         
         // Verify admin exists
         AdminUser admin = adminUserMapper.findById(adminId);
         if (admin == null) {
-            System.out.println("[DEBUG] Admin NOT found for ID: " + adminId);
             throw new RuntimeException("Admin không hợp lệ");
         }
         
-        System.out.println("[DEBUG] Admin Found: " + admin.getUsername() + ", UnitID: " + admin.getUnitId());
-        
+
         // Nếu admin không có unit_id, không có quyền xem danh sách
         if (admin.getUnitId() == null) {
             System.out.println("[DEBUG] Admin không có unit_id, trả về danh sách rỗng");
@@ -119,11 +115,85 @@ public class VisitService {
         }
         
         // Use WITH RECURSIVE in mapper to get all child units
-        List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, month, week, province, status, keyword);
-        System.out.println("[DEBUG] Found " + results.size() + " registrations");
-        
+        List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, null, null, province, status, keyword);
+
+        // Apply week/month filtering based on the frontend display logic
+        if ((month != null && !month.isEmpty()) || week != null) {
+            results = results.stream()
+                .filter(result -> {
+                    Integer resultWeek = result.get("visit_week") != null ?
+                        Integer.valueOf(result.get("visit_week").toString()) : null;
+                    String createdAtStr = result.get("created_at") != null ?
+                        result.get("created_at").toString() : null;
+
+                    if (resultWeek == null || createdAtStr == null) {
+                        return false;
+                    }
+
+                    // Parse the created_at date
+                    java.time.LocalDateTime createdAt = java.time.LocalDateTime.parse(
+                        createdAtStr.replace(" ", "T"));
+
+                    // Calculate the display week/month using the same logic as the frontend
+                    String calculatedDisplay = calculateWeekMonthDisplay(resultWeek, createdAt);
+
+                    // Check if the calculated display matches the filter criteria
+                    boolean weekMatch = (week == null) || (resultWeek.equals(week));
+                    boolean monthMatch = true;
+
+                    if (month != null && !month.isEmpty()) {
+                        // Extract month from calculated display (format: "week/month")
+                        String[] parts = calculatedDisplay.split("/");
+                        if (parts.length == 2) {
+                            String displayMonth = parts[1];
+                            monthMatch = month.equals(displayMonth);
+                        } else {
+                            monthMatch = false;
+                        }
+                    }
+
+                    return weekMatch && monthMatch;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        }
+
         return results;
     }
+
+    private String calculateWeekMonthDisplay(Integer week, java.time.LocalDateTime createdAt) {
+        if (createdAt == null) return "Tuần " + week;
+
+        int dayOfMonth = createdAt.getDayOfMonth();
+
+        // Get first day of month (1=Monday, 7=Sunday)
+        java.time.LocalDate firstDay = java.time.LocalDate.of(createdAt.getYear(), createdAt.getMonth(), 1);
+        int firstDayOfWeek = firstDay.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
+        int firstDayOfMonth = firstDayOfWeek; // 1=Monday, 7=Sunday
+
+        int month = createdAt.getMonthValue(); // 1-12
+
+        // Logic: If date is before first Monday, it belongs to previous month
+        if (firstDayOfMonth == 7) {
+            // First day is Sunday
+            if (dayOfMonth == 1) {
+                // Day 1 (Sunday) belongs to previous month
+                month = month - 1;
+                if (month == 0) month = 12;
+            }
+        } else {
+            // First day is Monday-Saturday
+            int daysBeforeFirstMonday = (8 - firstDayOfMonth) % 7;
+            if (dayOfMonth <= daysBeforeFirstMonday) {
+                // Belongs to previous month
+                month = month - 1;
+                if (month == 0) month = 12;
+            }
+        }
+
+        String monthStr = String.format("%02d", month);
+        return week + "/" + monthStr;
+    }
+
     public Map<String, Object> getRegistrationDetail(Long id) {
         VisitRegistration reg = visitRegistrationMapper.findById(id);
         if (reg == null) {
@@ -211,21 +281,99 @@ public class VisitService {
         if (adminId == null) {
             return new HashMap<>();
         }
-        
+
         AdminUser admin = adminUserMapper.findById(adminId);
         if (admin == null) {
             throw new RuntimeException("Admin không hợp lệ");
         }
-        
+
         // Nếu admin không có unit_id, không có quyền xem thống kê
         if (admin.getUnitId() == null) {
             System.out.println("[DEBUG] Admin " + admin.getUsername() + " không có unit_id, trả về stats rỗng");
             return Map.of("byProvince", new java.util.ArrayList<>(), "byStatus", new java.util.ArrayList<>());
         }
-        
+
+        // Get all records first, then apply week/month filtering in memory
+        List<Map<String, Object>> allData = visitRegistrationMapper.searchAdmin(adminId, null, null, null, null, null);
+
+        // Apply week/month filtering based on the frontend display logic
+        if ((month != null && !month.isEmpty()) || week != null) {
+            allData = allData.stream()
+                .filter(result -> {
+                    Integer resultWeek = result.get("visit_week") != null ?
+                        Integer.valueOf(result.get("visit_week").toString()) : null;
+                    String createdAtStr = result.get("created_at") != null ?
+                        result.get("created_at").toString() : null;
+
+                    if (resultWeek == null || createdAtStr == null) {
+                        return false;
+                    }
+
+                    // Parse the created_at date
+                    java.time.LocalDateTime createdAt = java.time.LocalDateTime.parse(
+                        createdAtStr.replace(" ", "T"));
+
+                    // Calculate the display week/month using the same logic as the frontend
+                    String calculatedDisplay = calculateWeekMonthDisplay(resultWeek, createdAt);
+
+                    // Check if the calculated display matches the filter criteria
+                    boolean weekMatch = (week == null) || (resultWeek.equals(week));
+                    boolean monthMatch = true;
+
+                    if (month != null && !month.isEmpty()) {
+                        // Extract month from calculated display (format: "week/month")
+                        String[] parts = calculatedDisplay.split("/");
+                        if (parts.length == 2) {
+                            String displayMonth = parts[1];
+                            monthMatch = month.equals(displayMonth);
+                        } else {
+                            monthMatch = false;
+                        }
+                    }
+
+                    return weekMatch && monthMatch;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        }
+
+        // Calculate stats from filtered data
         Map<String, Object> stats = new HashMap<>();
-        stats.put("byProvince", visitRegistrationMapper.countByProvince(adminId, month, week));
-        stats.put("byStatus", visitRegistrationMapper.countByStatus(adminId, month, week));
+
+        // Calculate byProvince stats
+        Map<String, Long> provinceCount = allData.stream()
+            .collect(java.util.stream.Collectors.groupingBy(
+                row -> row.get("province") != null ? row.get("province").toString() : "N/A",
+                java.util.stream.Collectors.counting()
+            ));
+
+        List<Map<String, Object>> byProvince = provinceCount.entrySet().stream()
+            .map(entry -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("province", entry.getKey());
+                map.put("count", entry.getValue());
+                return map;
+            })
+            .collect(java.util.stream.Collectors.toList());
+
+        // Calculate byStatus stats
+        Map<String, Long> statusCount = allData.stream()
+            .collect(java.util.stream.Collectors.groupingBy(
+                row -> row.get("status") != null ? row.get("status").toString() : "N/A",
+                java.util.stream.Collectors.counting()
+            ));
+
+        List<Map<String, Object>> byStatus = statusCount.entrySet().stream()
+            .map(entry -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("status", entry.getKey());
+                map.put("count", entry.getValue());
+                return map;
+            })
+            .collect(java.util.stream.Collectors.toList());
+
+        stats.put("byProvince", byProvince);
+        stats.put("byStatus", byStatus);
+
         return stats;
     }
 

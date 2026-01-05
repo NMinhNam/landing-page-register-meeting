@@ -59,7 +59,7 @@ public interface VisitRegistrationMapper {
             "LEFT JOIN unit u ON v.unit_id = u.id " +
             "LEFT JOIN relative r ON v.id = r.visit_registration_id " +
             "WHERE v.unit_id IN (SELECT id FROM unit_tree) " +
-            "<if test='month != null and month != \"\"'> AND DATE_FORMAT(v.created_at, '%m') = #{month} </if>" +
+            "<if test='month != null and month != \"\"'> AND MONTH(v.created_at) = CAST(#{month} AS UNSIGNED) </if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "<if test='province != null and province != \"\"'> AND v.province = #{province} </if>" +
             "<if test='status != null and status != \"\"'> AND v.status = #{status} </if>" +
@@ -94,7 +94,7 @@ public interface VisitRegistrationMapper {
             "SELECT v.province, COUNT(*) as count " +
             "FROM visit_registration v " +
             "WHERE v.unit_id IN (SELECT id FROM unit_tree) " +
-            "<if test='month != null and month != \"\"'> AND DATE_FORMAT(v.created_at, '%m') = #{month} </if>" +
+            "<if test='month != null and month != \"\"'> AND MONTH(v.created_at) = CAST(#{month} AS UNSIGNED) </if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "GROUP BY v.province" +
             "</script>")
@@ -116,7 +116,7 @@ public interface VisitRegistrationMapper {
             "SELECT status, COUNT(*) as count " +
             "FROM visit_registration v " +
             "WHERE v.unit_id IN (SELECT id FROM unit_tree) " +
-            "<if test='month != null and month != \"\"'> AND DATE_FORMAT(v.created_at, '%m') = #{month} </if>" +
+            "<if test='month != null and month != \"\"'> AND MONTH(v.created_at) = CAST(#{month} AS UNSIGNED) </if>" +
             "<if test='week != null'> AND v.visit_week = #{week} </if>" +
             "GROUP BY status" +
             "</script>")
