@@ -99,30 +99,30 @@ public class VisitService {
         return relativeMapper.findByRegistrationId(registrationId);
     }
 
-        public List<Map<String, Object>> searchAdmin(Long unitId, String month, Integer week, String province, String status, String keyword, Long adminId) {
+        public List<Map<String, Object>> searchAdmin(Long unitId, String month, Integer week, String year, String province, String status, String keyword, Long adminId) {
 
         if (adminId == null) {
             return new java.util.ArrayList<>();
         }
-        
+
         // Verify admin exists
         AdminUser admin = adminUserMapper.findById(adminId);
         if (admin == null) {
             throw new RuntimeException("Admin không hợp lệ");
         }
-        
+
 
         // Nếu admin không có unit_id, không có quyền xem danh sách
         if (admin.getUnitId() == null) {
             System.out.println("[DEBUG] Admin không có unit_id, trả về danh sách rỗng");
             return new java.util.ArrayList<>();
         }
-        
+
         // Use WITH RECURSIVE in mapper to get all child units
         List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, null, null, province, status, keyword);
 
-        // Apply week/month filtering based on the frontend display logic
-        if ((month != null && !month.isEmpty()) || week != null) {
+        // Apply year/week/month filtering based on the frontend display logic
+        if ((year != null && !year.isEmpty()) || (month != null && !month.isEmpty()) || week != null) {
             results = results.stream()
                 .filter(result -> {
                     Integer resultWeek = result.get("visit_week") != null ?
@@ -142,6 +142,7 @@ public class VisitService {
                     String calculatedDisplay = calculateWeekMonthDisplay(resultWeek, createdAt);
 
                     // Check if the calculated display matches the filter criteria
+                    boolean yearMatch = (year == null) || (String.valueOf(createdAt.getYear()).equals(year));
                     boolean weekMatch = (week == null) || (resultWeek.equals(week));
                     boolean monthMatch = true;
 
@@ -156,7 +157,7 @@ public class VisitService {
                         }
                     }
 
-                    return weekMatch && monthMatch;
+                    return yearMatch && weekMatch && monthMatch;
                 })
                 .collect(java.util.stream.Collectors.toList());
         }
@@ -168,13 +169,15 @@ public class VisitService {
         if (createdAt == null) return "Tuần " + week;
 
         int dayOfMonth = createdAt.getDayOfMonth();
+        int year = createdAt.getYear();
 
         // Get first day of month (1=Monday, 7=Sunday)
-        java.time.LocalDate firstDay = java.time.LocalDate.of(createdAt.getYear(), createdAt.getMonth(), 1);
+        java.time.LocalDate firstDay = java.time.LocalDate.of(year, createdAt.getMonth(), 1);
         int firstDayOfWeek = firstDay.getDayOfWeek().getValue(); // 1=Mon, 7=Sun
         int firstDayOfMonth = firstDayOfWeek; // 1=Monday, 7=Sunday
 
         int month = createdAt.getMonthValue(); // 1-12
+        int calculatedYear = year;
 
         // Logic: If date is before first Monday, it belongs to previous month
         if (firstDayOfMonth == 7) {
@@ -182,7 +185,10 @@ public class VisitService {
             if (dayOfMonth == 1) {
                 // Day 1 (Sunday) belongs to previous month
                 month = month - 1;
-                if (month == 0) month = 12;
+                if (month == 0) {
+                    month = 12;
+                    calculatedYear = year - 1; // Adjust year when moving to previous month
+                }
             }
         } else {
             // First day is Monday-Saturday
@@ -190,7 +196,10 @@ public class VisitService {
             if (dayOfMonth <= daysBeforeFirstMonday) {
                 // Belongs to previous month
                 month = month - 1;
-                if (month == 0) month = 12;
+                if (month == 0) {
+                    month = 12;
+                    calculatedYear = year - 1; // Adjust year when moving to previous month
+                }
             }
         }
 
@@ -281,7 +290,7 @@ public class VisitService {
         }
     }
 
-    public Map<String, Object> getStats(String month, Integer week, Long adminId) {
+    public Map<String, Object> getStats(String month, Integer week, String year, Long adminId) {
         if (adminId == null) {
             return new HashMap<>();
         }
@@ -297,11 +306,11 @@ public class VisitService {
             return Map.of("byProvince", new java.util.ArrayList<>(), "byStatus", new java.util.ArrayList<>());
         }
 
-        // Get all records first, then apply week/month filtering in memory
+        // Get all records first, then apply year/week/month filtering in memory
         List<Map<String, Object>> allData = visitRegistrationMapper.searchAdmin(adminId, null, null, null, null, null);
 
-        // Apply week/month filtering based on the frontend display logic
-        if ((month != null && !month.isEmpty()) || week != null) {
+        // Apply year/week/month filtering based on the frontend display logic
+        if ((year != null && !year.isEmpty()) || (month != null && !month.isEmpty()) || week != null) {
             allData = allData.stream()
                 .filter(result -> {
                     Integer resultWeek = result.get("visit_week") != null ?
@@ -321,6 +330,7 @@ public class VisitService {
                     String calculatedDisplay = calculateWeekMonthDisplay(resultWeek, createdAt);
 
                     // Check if the calculated display matches the filter criteria
+                    boolean yearMatch = (year == null) || (String.valueOf(createdAt.getYear()).equals(year));
                     boolean weekMatch = (week == null) || (resultWeek.equals(week));
                     boolean monthMatch = true;
 
@@ -335,7 +345,7 @@ public class VisitService {
                         }
                     }
 
-                    return weekMatch && monthMatch;
+                    return yearMatch && weekMatch && monthMatch;
                 })
                 .collect(java.util.stream.Collectors.toList());
         }
@@ -381,15 +391,15 @@ public class VisitService {
         return stats;
     }
 
-    public byte[] exportRegistrations(Long unitId, String month, Integer week, String province, String status, Long adminId) {
-        List<Map<String, Object>> data = searchAdmin(unitId, month, week, province, status, null, adminId);
-        
+    public byte[] exportRegistrations(Long unitId, String month, Integer week, String year, String province, String status, Long adminId) {
+        List<Map<String, Object>> data = searchAdmin(unitId, month, week, year, province, status, null, adminId);
+
         StringBuilder csv = new StringBuilder();
         // Add BOM for Excel UTF-8 compatibility
         csv.append("\uFEFF");
         // Header
         csv.append("STT,Tên đơn vị,Tỉnh/Thành phố,Danh sách thân nhân,Mã số định danh/CCCD,SĐT người đại diện,Trạng thái,Ghi chú\n");
-        
+
         int stt = 1;
         for (Map<String, Object> row : data) {
             csv.append(stt++).append(",");
@@ -401,7 +411,7 @@ public class VisitService {
             csv.append(escapeCsv((String) row.get("status"))).append(",");
             csv.append(escapeCsv((String) row.get("note"))).append("\n");
         }
-        
+
         return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 

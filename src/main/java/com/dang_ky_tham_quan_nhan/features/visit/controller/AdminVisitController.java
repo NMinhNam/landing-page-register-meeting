@@ -29,12 +29,13 @@ public class AdminVisitController {
             @RequestParam(required = false) Long unitId,
             @RequestParam(required = false) String month,
             @RequestParam(required = false) Integer week,
+            @RequestParam(required = false) String year,
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long adminId
     ) {
         try {
-            byte[] content = visitService.exportRegistrations(unitId, month, week, province, status, adminId);
+            byte[] content = visitService.exportRegistrations(unitId, month, week, year, province, status, adminId);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ds_dang_ky_tham_gap.csv\"")
@@ -52,6 +53,7 @@ public class AdminVisitController {
             @RequestParam(required = false) Long unitId,
             @RequestParam(required = false) String month,
             @RequestParam(required = false) Integer week,
+            @RequestParam(required = false) String year,
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
@@ -69,7 +71,7 @@ public class AdminVisitController {
             }
         }
 
-        List<Map<String, Object>> data = visitService.searchAdmin(unitId, month, week, province, status, keyword, parsedAdminId);
+        List<Map<String, Object>> data = visitService.searchAdmin(unitId, month, week, year, province, status, keyword, parsedAdminId);
         return Map.of("data", data, "total", data.size());
     }
 
@@ -96,6 +98,7 @@ public class AdminVisitController {
     public Map<String, Object> getStats(
             @RequestParam(required = false) String month,
             @RequestParam(required = false) Integer week,
+            @RequestParam(required = false) String year,
             @RequestParam(required = false) String adminId
     ) {
         Long parsedAdminId = null;
@@ -106,6 +109,6 @@ public class AdminVisitController {
                 // ignore
             }
         }
-        return visitService.getStats(month, week, parsedAdminId);
+        return visitService.getStats(month, week, year, parsedAdminId);
     }
 }

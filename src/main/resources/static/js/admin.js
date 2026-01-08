@@ -51,18 +51,20 @@ function debounceLoadData() {
 function loadData(isSilent = false) {
     const month = document.getElementById('filterMonth').value;
     const week = document.getElementById('filterWeek').value;
+    const year = document.getElementById('filterYear').value;
     const status = document.getElementById('filterStatus').value;
     const province = document.getElementById('filterProvince').value;
     const keyword = document.getElementById('searchKeyword').value;
     const role = localStorage.getItem('adminRole');
     const adminId = localStorage.getItem('adminId');
-    
+
     // Also reload stats when data reloads (filtered by week or month)
-    if(!isSilent) loadStats(week, month);
+    if(!isSilent) loadStats(week, month, year);
 
     let url = `/api/v1/admin/registrations?page=1&size=50`;
     if(month) url += `&month=${month}`;
     if(week) url += `&week=${week}`;
+    if(year) url += `&year=${year}`;
     if(status) url += `&status=${status}`;
     if(province) url += `&province=${encodeURIComponent(province)}`;
     if(keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
@@ -165,42 +167,51 @@ function formatDate(dateString) {
 
 function getWeekMonthDisplay(week, dateString) {
     if (!dateString) return `Tuần ${week}`;
-    
+
     const date = new Date(dateString);
     const dayOfMonth = date.getDate();
-    
+    const year = date.getFullYear();
+
     // Get first day of month (1=Monday, 7=Sunday)
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     const firstDayOfWeek = firstDay.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
     const firstDayOfMonth = (firstDayOfWeek === 0) ? 7 : firstDayOfWeek; // Convert to 1=Monday, 7=Sunday
-    
+
     let month = date.getMonth() + 1; // 1-12
-    
+    let calculatedYear = year;
+
     // Logic: Nếu ngày nằm trước thứ 2 đầu tiên thì thuộc tháng trước
     if (firstDayOfMonth === 7) {
         // Ngày 1 là CN, ngày 2 trở đi là tuần 1 của tháng này
         if (dayOfMonth === 1) {
             month = month - 1; // Ngày 1 (CN) thuộc tháng trước
-            if (month === 0) month = 12;
+            if (month === 0) {
+                month = 12;
+                calculatedYear = year - 1; // Adjust year when moving to previous month
+            }
         }
     } else {
         // Ngày 1 là Thứ 2-7
         const daysBeforeFirstMonday = (8 - firstDayOfMonth) % 7;
         if (dayOfMonth <= daysBeforeFirstMonday) {
             month = month - 1; // Thuộc tháng trước
-            if (month === 0) month = 12;
+            if (month === 0) {
+                month = 12;
+                calculatedYear = year - 1; // Adjust year when moving to previous month
+            }
         }
     }
-    
+
     const monthStr = month.toString().padStart(2, '0');
     return `${week}/${monthStr}`;
 }
 
-function loadStats(week, month) {
+function loadStats(week, month, year) {
     let url = '/api/v1/admin/stats';
     let params = [];
     if(month) params.push(`month=${month}`);
     if(week) params.push(`week=${week}`);
+    if(year) params.push(`year=${year}`);
     const adminId = localStorage.getItem('adminId');
     if(adminId && adminId !== 'null' && adminId !== 'undefined') params.push(`adminId=${adminId}`);
     if(params.length > 0) url += `?${params.join('&')}`;
@@ -215,7 +226,7 @@ function loadStats(week, month) {
             const pending = data.byStatus.find(s => s.status === 'PENDING')?.count || 0;
             const approved = data.byStatus.find(s => s.status === 'APPROVED')?.count || 0;
             const rejected = data.byStatus.find(s => s.status === 'REJECTED')?.count || 0;
-            
+
             document.getElementById('countPending').textContent = pending;
             document.getElementById('countApproved').textContent = approved;
             document.getElementById('countRejected').textContent = rejected;
@@ -245,16 +256,18 @@ function loadStats(week, month) {
 function exportData() {
     const month = document.getElementById('filterMonth').value;
     const week = document.getElementById('filterWeek').value;
+    const year = document.getElementById('filterYear').value;
     const status = document.getElementById('filterStatus').value;
     const province = document.getElementById('filterProvince').value;
     const adminId = localStorage.getItem('adminId');
 
-    console.log('[Export] Starting export...', { month, week, status, province, adminId });
+    console.log('[Export] Starting export...', { month, week, year, status, province, adminId });
 
     let url = `/api/v1/admin/export/registrations?v=1`;
     if(adminId && adminId !== 'null') url += `&adminId=${adminId}`;
     if(month) url += `&month=${month}`;
     if(week) url += `&week=${week}`;
+    if(year) url += `&year=${year}`;
     if(status) url += `&status=${status}`;
     if(province) url += `&province=${encodeURIComponent(province)}`;
     
