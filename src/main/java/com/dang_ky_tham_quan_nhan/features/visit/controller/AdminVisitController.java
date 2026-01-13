@@ -24,7 +24,7 @@ public class AdminVisitController {
     }
 
     @GetMapping("/export/registrations")
-    @Operation(summary = "Export Registrations", description = "Export registrations to CSV.")
+    @Operation(summary = "Export Registrations", description = "Export registrations to Excel.")
     public ResponseEntity<byte[]> exportRegistrations(
             @RequestParam(required = false) Long unitId,
             @RequestParam(required = false) String month,
@@ -38,8 +38,8 @@ public class AdminVisitController {
             byte[] content = visitService.exportRegistrations(unitId, month, week, year, province, status, adminId);
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ds_dang_ky_tham_gap.csv\"")
-                    .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ds_dang_ky_tham_gap.xlsx\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .body(content);
         } catch (Exception e) {
             e.printStackTrace();

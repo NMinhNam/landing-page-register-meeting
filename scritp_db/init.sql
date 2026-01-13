@@ -91,6 +91,14 @@ JOIN unit u ON v.manual_unit_name = u.name
 SET v.unit_id = u.id
 WHERE v.unit_id IS NULL;
 
+ALTER TABLE visit_registration
+ADD COLUMN visit_week_month_display VARCHAR(20) NULL COMMENT 'Calculated display format: week/month (e.g., 1/03)',
+ADD COLUMN visit_year INT NULL COMMENT 'Year of the visit registration';
+
+ALTER TABLE visit_registration
+ADD COLUMN visit_month INT NULL COMMENT 'Month of the visit registration (based on display logic)';
+
+
 -- INDEX
 CREATE INDEX idx_soldier_unit ON soldier(unit_id);
 CREATE INDEX idx_visit_status ON visit_registration(status);

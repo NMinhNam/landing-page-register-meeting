@@ -12,6 +12,7 @@ import com.dang_ky_tham_quan_nhan.features.visit.entity.Relative;
 import com.dang_ky_tham_quan_nhan.features.visit.entity.VisitRegistration;
 import com.dang_ky_tham_quan_nhan.features.visit.mapper.RelativeMapper;
 import com.dang_ky_tham_quan_nhan.features.visit.mapper.VisitRegistrationMapper;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,13 +68,34 @@ public class VisitService {
 
         reg.setRepresentativePhone(request.getRepresentativePhone());
         reg.setProvince(request.getProvince());
-        
+
         // Calculate week and month
         LocalDateTime now = LocalDateTime.now();
         WeekMonth weekMonth = calculateWeekOfMonth(now);
         reg.setVisitWeek(weekMonth.week);
         // Store month for reference (format: MM, 01-12)
-        
+
+        // Calculate and store the display values
+        String weekMonthDisplay = calculateWeekMonthDisplay(weekMonth.week, now);
+        reg.setVisitWeekMonthDisplay(weekMonthDisplay);
+
+        // Extract month from the calculated display (format: "week/month")
+        String[] parts = weekMonthDisplay.split("/");
+        if (parts.length == 2) {
+            try {
+                int displayMonth = Integer.parseInt(parts[1]);
+                reg.setVisitMonth(displayMonth);
+            } catch (NumberFormatException e) {
+                // Fallback to actual month if parsing fails
+                reg.setVisitMonth(now.getMonthValue());
+            }
+        } else {
+            // Fallback to actual month if format is unexpected
+            reg.setVisitMonth(now.getMonthValue());
+        }
+
+        reg.setVisitYear(now.getYear());
+
         reg.setStatus(VisitStatus.PENDING.name());
         reg.setCreatedAt(now);
         visitRegistrationMapper.insert(reg);
@@ -119,53 +141,12 @@ public class VisitService {
         }
 
         // Use WITH RECURSIVE in mapper to get all child units
-        List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, null, null, province, status, keyword);
-
-        // Apply year/week/month filtering based on the frontend display logic
-        if ((year != null && !year.isEmpty()) || (month != null && !month.isEmpty()) || week != null) {
-            results = results.stream()
-                .filter(result -> {
-                    Integer resultWeek = result.get("visit_week") != null ?
-                        Integer.valueOf(result.get("visit_week").toString()) : null;
-                    String createdAtStr = result.get("created_at") != null ?
-                        result.get("created_at").toString() : null;
-
-                    if (resultWeek == null || createdAtStr == null) {
-                        return false;
-                    }
-
-                    // Parse the created_at date
-                    java.time.LocalDateTime createdAt = java.time.LocalDateTime.parse(
-                        createdAtStr.replace(" ", "T"));
-
-                    // Calculate the display week/month using the same logic as the frontend
-                    String calculatedDisplay = calculateWeekMonthDisplay(resultWeek, createdAt);
-
-                    // Check if the calculated display matches the filter criteria
-                    boolean yearMatch = (year == null) || (String.valueOf(createdAt.getYear()).equals(year));
-                    boolean weekMatch = (week == null) || (resultWeek.equals(week));
-                    boolean monthMatch = true;
-
-                    if (month != null && !month.isEmpty()) {
-                        // Extract month from calculated display (format: "week/month")
-                        String[] parts = calculatedDisplay.split("/");
-                        if (parts.length == 2) {
-                            String displayMonth = parts[1];
-                            monthMatch = month.equals(displayMonth);
-                        } else {
-                            monthMatch = false;
-                        }
-                    }
-
-                    return yearMatch && weekMatch && monthMatch;
-                })
-                .collect(java.util.stream.Collectors.toList());
-        }
+        List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, month, week, year, province, status, keyword);
 
         return results;
     }
 
-    private String calculateWeekMonthDisplay(Integer week, java.time.LocalDateTime createdAt) {
+    public String calculateWeekMonthDisplay(Integer week, java.time.LocalDateTime createdAt) {
         if (createdAt == null) return "Tuần " + week;
 
         int dayOfMonth = createdAt.getDayOfMonth();
@@ -222,6 +203,9 @@ public class VisitService {
         result.put("representativePhone", reg.getRepresentativePhone());
         result.put("province", reg.getProvince());
         result.put("visitWeek", reg.getVisitWeek());
+        result.put("visitWeekMonthDisplay", reg.getVisitWeekMonthDisplay());
+        result.put("visitYear", reg.getVisitYear());
+        result.put("visitMonth", reg.getVisitMonth());
         result.put("status", reg.getStatus());
         result.put("note", reg.getNote());
         result.put("createdAt", reg.getCreatedAt());
@@ -307,43 +291,25 @@ public class VisitService {
         }
 
         // Get all records first, then apply year/week/month filtering in memory
-        List<Map<String, Object>> allData = visitRegistrationMapper.searchAdmin(adminId, null, null, null, null, null);
+        List<Map<String, Object>> allData = visitRegistrationMapper.searchAdmin(adminId, null, null, null, null, null, null);
 
-        // Apply year/week/month filtering based on the frontend display logic
+        // Apply year/week/month filtering based on the stored display values
         if ((year != null && !year.isEmpty()) || (month != null && !month.isEmpty()) || week != null) {
             allData = allData.stream()
                 .filter(result -> {
                     Integer resultWeek = result.get("visit_week") != null ?
                         Integer.valueOf(result.get("visit_week").toString()) : null;
-                    String createdAtStr = result.get("created_at") != null ?
-                        result.get("created_at").toString() : null;
+                    Integer resultYear = result.get("visit_year") != null ? Integer.valueOf(result.get("visit_year").toString()) : null;
+                    Integer resultMonth = result.get("visit_month") != null ? Integer.valueOf(result.get("visit_month").toString()) : null;
 
-                    if (resultWeek == null || createdAtStr == null) {
+                    if (resultWeek == null || resultYear == null || resultMonth == null) {
                         return false;
                     }
 
-                    // Parse the created_at date
-                    java.time.LocalDateTime createdAt = java.time.LocalDateTime.parse(
-                        createdAtStr.replace(" ", "T"));
-
-                    // Calculate the display week/month using the same logic as the frontend
-                    String calculatedDisplay = calculateWeekMonthDisplay(resultWeek, createdAt);
-
-                    // Check if the calculated display matches the filter criteria
-                    boolean yearMatch = (year == null) || (String.valueOf(createdAt.getYear()).equals(year));
+                    // Check if the stored values match the filter criteria
+                    boolean yearMatch = (year == null) || (resultYear.toString().equals(year));
                     boolean weekMatch = (week == null) || (resultWeek.equals(week));
-                    boolean monthMatch = true;
-
-                    if (month != null && !month.isEmpty()) {
-                        // Extract month from calculated display (format: "week/month")
-                        String[] parts = calculatedDisplay.split("/");
-                        if (parts.length == 2) {
-                            String displayMonth = parts[1];
-                            monthMatch = month.equals(displayMonth);
-                        } else {
-                            monthMatch = false;
-                        }
-                    }
+                    boolean monthMatch = (month == null) || (resultMonth.toString().equals(month));
 
                     return yearMatch && weekMatch && monthMatch;
                 })
@@ -394,34 +360,170 @@ public class VisitService {
     public byte[] exportRegistrations(Long unitId, String month, Integer week, String year, String province, String status, Long adminId) {
         List<Map<String, Object>> data = searchAdmin(unitId, month, week, year, province, status, null, adminId);
 
-        StringBuilder csv = new StringBuilder();
-        // Add BOM for Excel UTF-8 compatibility
-        csv.append("\uFEFF");
-        // Header
-        csv.append("STT,Tên đơn vị,Tỉnh/Thành phố,Danh sách thân nhân,Mã số định danh/CCCD,SĐT người đại diện,Trạng thái,Ghi chú\n");
+        try (org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("Danh sách đăng ký");
 
-        int stt = 1;
-        for (Map<String, Object> row : data) {
-            csv.append(stt++).append(",");
-            csv.append(escapeCsv((String) row.get("unit_name"))).append(",");
-            csv.append(escapeCsv((String) row.get("province"))).append(",");
-            csv.append(escapeCsv((String) row.get("relative_name"))).append(",");
-            csv.append(escapeCsv((String) row.get("relative_ids"))).append(",");
-            csv.append(escapeCsv((String) row.get("relative_phone"))).append(",");
-            csv.append(escapeCsv((String) row.get("status"))).append(",");
-            csv.append(escapeCsv((String) row.get("note"))).append("\n");
+            // Create title row
+            org.apache.poi.ss.usermodel.Row titleRow = sheet.createRow(0);
+            String title = "DANH SÁCH ĐĂNG KÝ THĂM QUÂN NHÂN TUẦN " + (week != null ? week : "...") + " THÁNG " + (month != null ? month : "...") + " NĂM " + (year != null ? year : "...") + " CỦA TIỂU ĐOÀN 4";
+            org.apache.poi.ss.usermodel.Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue(title);
+
+            // Merge cells for title
+            CellRangeAddress region = new CellRangeAddress(0, 0, 0, 10);
+            sheet.addMergedRegion(region);
+
+            // Style for title
+            org.apache.poi.ss.usermodel.CellStyle titleStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 14);
+            titleStyle.setFont(titleFont);
+            titleStyle.setAlignment(org.apache.poi.ss.usermodel.HorizontalAlignment.CENTER);
+            titleStyle.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
+            titleCell.setCellStyle(titleStyle);
+
+            // Create header row (now at row 1)
+            org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(1);
+            String[] headers = {"STT", "Tên quân nhân", "Chức vụ", "Đơn vị", "Tỉnh/ Thành phố", "Thân nhân", "Quan hệ", "Mã số định danh/CCCD", "SDT người đại diện", "Trạng thái", "Ghi chú"};
+
+            for (int i = 0; i < headers.length; i++) {
+                org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+
+                // Apply styling to header cells
+                org.apache.poi.ss.usermodel.CellStyle headerStyle = workbook.createCellStyle();
+                org.apache.poi.ss.usermodel.Font font = workbook.createFont();
+                font.setBold(true);
+                headerStyle.setFont(font);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Populate data rows (starting from row 2)
+            int rowNum = 2;
+            for (Map<String, Object> row : data) {
+                // Get the concatenated relatives and relationships from the query result
+                String relativeNames = getStringValue(row.get("relative_name"));
+                String relationships = getStringValue(row.get("relationships"));
+
+                // Split the concatenated strings by comma to get individual values
+                String[] namesArray = relativeNames.isEmpty() ? new String[0] : relativeNames.split(",");
+                String[] relationshipsArray = relationships.isEmpty() ? new String[0] : relationships.split(",");
+
+                // Determine the number of rows needed based on the maximum of names or relationships
+                int maxRows = Math.max(namesArray.length, relationshipsArray.length);
+
+                if (maxRows == 0) {
+                    // If there are no relatives, create a single row with empty values
+                    org.apache.poi.ss.usermodel.Row dataRow = sheet.createRow(rowNum++);
+
+                    int cellNum = 0;
+
+                    // STT
+                    dataRow.createCell(cellNum++).setCellValue(rowNum - 2); // -2 because we start from row 2
+
+                    // Tên quân nhân
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("soldier_name")));
+
+                    // Chức vụ (chưa có trong DB, tạm để trống hoặc lấy từ thông tin quân nhân nếu có)
+                    dataRow.createCell(cellNum++).setCellValue(""); // Chưa có trong DB, cần thêm nếu có
+
+                    // Đơn vị
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("unit_name")));
+
+                    // Tỉnh/Thành phố
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("province")));
+
+                    // Thân nhân
+                    dataRow.createCell(cellNum++).setCellValue("");
+
+                    // Quan hệ
+                    dataRow.createCell(cellNum++).setCellValue("");
+
+                    // Mã số định danh/CCCD
+                    dataRow.createCell(cellNum++).setCellValue("");
+
+                    // SDT người đại diện
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("relative_phone")));
+
+                    // Trạng thái
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("status")));
+
+                    // Ghi chú
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("note")));
+                } else {
+                    // For each relative/relationship pair, create a separate row
+                    for (int i = 0; i < maxRows; i++) {
+                        org.apache.poi.ss.usermodel.Row dataRow = sheet.createRow(rowNum++);
+
+                        int cellNum = 0;
+
+                        // STT
+                        dataRow.createCell(cellNum++).setCellValue(rowNum - 2); // -2 because we start from row 2
+
+                        // Tên quân nhân
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("soldier_name")));
+
+                        // Chức vụ (chưa có trong DB, tạm để trống hoặc lấy từ thông tin quân nhân nếu có)
+                        dataRow.createCell(cellNum++).setCellValue(""); // Chưa có trong DB, cần thêm nếu có
+
+                        // Đơn vị
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("unit_name")));
+
+                        // Tỉnh/Thành phố
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("province")));
+
+                        // Thân nhân
+                        dataRow.createCell(cellNum++).setCellValue(i < namesArray.length ? namesArray[i].trim() : "");
+
+                        // Quan hệ
+                        dataRow.createCell(cellNum++).setCellValue(i < relationshipsArray.length ? relationshipsArray[i].trim() : "");
+
+                        // Mã số định danh/CCCD
+                        dataRow.createCell(cellNum++).setCellValue(i < namesArray.length ? getStringValue(row.get("relative_ids")) : "");
+
+                        // SDT người đại diện
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("relative_phone")));
+
+                        // Trạng thái
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("status")));
+
+                        // Ghi chú
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("note")));
+                    }
+                }
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            // Write to byte array
+            java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+            workbook.write(outputStream);
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Error exporting to Excel", e);
         }
-
-        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 
-    private String escapeCsv(String val) {
-        if (val == null) return "";
-        String escaped = val.replace("\"", "\"\"");
-        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
-            return "\"" + escaped + "\"";
+    private String getStringValue(Object obj) {
+        return obj != null ? obj.toString() : "";
+    }
+
+    private int getIntegerValue(Object obj) {
+        if (obj instanceof Number) {
+            return ((Number) obj).intValue();
+        } else if (obj != null) {
+            try {
+                return Integer.parseInt(obj.toString());
+            } catch (NumberFormatException e) {
+                return 0;
+            }
         }
-        return escaped;
+        return 0;
     }
 
     // Helper class to return both week and month

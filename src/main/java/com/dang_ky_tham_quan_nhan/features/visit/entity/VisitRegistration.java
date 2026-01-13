@@ -12,6 +12,9 @@ public class VisitRegistration implements Serializable {
     private String representativePhone;
     private String province;
     private Integer visitWeek;
+    private String visitWeekMonthDisplay; // Calculated display format: week/month (e.g., 1/03)
+    private Integer visitYear; // Year of the visit registration
+    private Integer visitMonth; // Month of the visit registration (based on display logic)
     private String status; // PENDING, APPROVED, REJECTED
     private String note;
     private LocalDateTime createdAt;
@@ -122,5 +125,29 @@ public class VisitRegistration implements Serializable {
 
     public void setRelatives(java.util.List<Relative> relatives) {
         this.relatives = relatives;
+    }
+
+    public String getVisitWeekMonthDisplay() {
+        return visitWeekMonthDisplay;
+    }
+
+    public void setVisitWeekMonthDisplay(String visitWeekMonthDisplay) {
+        this.visitWeekMonthDisplay = visitWeekMonthDisplay;
+    }
+
+    public Integer getVisitYear() {
+        return visitYear;
+    }
+
+    public void setVisitYear(Integer visitYear) {
+        this.visitYear = visitYear;
+    }
+
+    public Integer getVisitMonth() {
+        return visitMonth;
+    }
+
+    public void setVisitMonth(Integer visitMonth) {
+        this.visitMonth = visitMonth;
     }
 }

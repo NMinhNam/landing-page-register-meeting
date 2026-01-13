@@ -1,25 +1,51 @@
 // Auth Check handled by admin-common.js
 
+// Global variable to hold the refresh interval
+let refreshIntervalId = null;
+let currentRefreshInterval = 10000; // Default to 10 seconds
+
 // Setup on load
 document.addEventListener('DOMContentLoaded', function() {
     loadProvinces();
     loadData();
     loadStats();
-    
-    // Auto refresh every 10 seconds
-    setInterval(() => {
-        // Only refresh if Modal is NOT open
-        const approvalModalEl = document.getElementById('approvalModal');
-        const detailModalEl = document.getElementById('detailModal');
-        const isModalOpen = (approvalModalEl && approvalModalEl.classList.contains('show')) || 
-                            (detailModalEl && detailModalEl.classList.contains('show'));
-        
-        if (!isModalOpen) {
-            loadData(true); // true = silent mode
-            loadStats();
-        }
-    }, 10000);
+
+    // Start auto refresh with default interval
+    startAutoRefresh();
 });
+
+// Function to start auto refresh
+function startAutoRefresh() {
+    // Clear any existing interval
+    if (refreshIntervalId) {
+        clearInterval(refreshIntervalId);
+    }
+
+    // Only set interval if currentRefreshInterval is greater than 0
+    if (currentRefreshInterval > 0) {
+        refreshIntervalId = setInterval(() => {
+            // Only refresh if Modal is NOT open
+            const approvalModalEl = document.getElementById('approvalModal');
+            const detailModalEl = document.getElementById('detailModal');
+            const isModalOpen = (approvalModalEl && approvalModalEl.classList.contains('show')) ||
+                                (detailModalEl && detailModalEl.classList.contains('show'));
+
+            if (!isModalOpen) {
+                loadData(true); // true = silent mode
+                loadStats();
+            }
+        }, currentRefreshInterval);
+    }
+}
+
+// Function to change the refresh interval
+function changeRefreshInterval() {
+    const selectElement = document.getElementById('refreshInterval');
+    currentRefreshInterval = parseInt(selectElement.value);
+
+    // Restart the auto refresh with the new interval
+    startAutoRefresh();
+}
 
 function loadProvinces() {
     fetch('/data/provinces.json')
@@ -129,7 +155,13 @@ function loadData(isSilent = false) {
                         <a href="tel:${item.relative_phone}" class="text-decoration-none fw-bold text-dark" onclick="event.stopPropagation()"><i class="fas fa-phone-alt me-1 text-muted"></i>${item.relative_phone}</a>
                     </td>
                     <td class="d-none d-md-table-cell">
-                        <span class="badge bg-info">${getWeekMonthDisplay(item.visit_week, item.created_at)}</span>
+                        <span class="badge bg-info">${item.visit_week || '-'}</span>
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        <span class="badge bg-secondary">${item.visit_month || '-'}</span>
+                    </td>
+                    <td class="d-none d-md-table-cell">
+                        <span class="badge bg-success">${item.visit_year || '-'}</span>
                     </td>
                     <td class="d-none d-md-table-cell">
                         <small class="text-muted">${item.province || '-'}</small>
@@ -254,32 +286,118 @@ function loadStats(week, month, year) {
 }
 
 function exportData() {
-    const month = document.getElementById('filterMonth').value;
-    const week = document.getElementById('filterWeek').value;
-    const year = document.getElementById('filterYear').value;
-    const status = document.getElementById('filterStatus').value;
-    const province = document.getElementById('filterProvince').value;
+    // Get current filter values
+    const currentMonth = document.getElementById('filterMonth').value;
+    const currentWeek = document.getElementById('filterWeek').value;
+    const currentYear = document.getElementById('filterYear').value;
     const adminId = localStorage.getItem('adminId');
 
-    console.log('[Export] Starting export...', { month, week, year, status, province, adminId });
+    // Create modal for user to select export parameters
+    const modalHtml = `
+        <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Xuất báo cáo Excel</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Tuần (bắt buộc)</label>
+                            <select class="form-select" id="exportWeek">
+                                <option value="">-- Chọn tuần --</option>
+                                <option value="1">Tuần 1</option>
+                                <option value="2">Tuần 2</option>
+                                <option value="3">Tuần 3</option>
+                                <option value="4">Tuần 4</option>
+                                <option value="5">Tuần 5</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tháng (bắt buộc)</label>
+                            <select class="form-select" id="exportMonth">
+                                <option value="">-- Chọn tháng --</option>
+                                <option value="01">Tháng 1</option>
+                                <option value="02">Tháng 2</option>
+                                <option value="03">Tháng 3</option>
+                                <option value="04">Tháng 4</option>
+                                <option value="05">Tháng 5</option>
+                                <option value="06">Tháng 6</option>
+                                <option value="07">Tháng 7</option>
+                                <option value="08">Tháng 8</option>
+                                <option value="09">Tháng 9</option>
+                                <option value="10">Tháng 10</option>
+                                <option value="11">Tháng 11</option>
+                                <option value="12">Tháng 12</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Năm (bắt buộc)</label>
+                            <select class="form-select" id="exportYear">
+                                <option value="">-- Chọn năm --</option>
+                                <option value="2024">Năm 2024</option>
+                                <option value="2025">Năm 2025</option>
+                                <option value="2026">Năm 2026</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn btn-primary" onclick="performExport()">Xuất báo cáo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to document if not exists
+    if (!document.getElementById('exportModal')) {
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    // Set default values to current filters
+    document.getElementById('exportWeek').value = currentWeek;
+    document.getElementById('exportMonth').value = currentMonth;
+    document.getElementById('exportYear').value = currentYear;
+
+    // Show modal
+    const exportModal = new bootstrap.Modal(document.getElementById('exportModal'));
+    exportModal.show();
+}
+
+function performExport() {
+    const week = document.getElementById('exportWeek').value;
+    const month = document.getElementById('exportMonth').value;
+    const year = document.getElementById('exportYear').value;
+    const adminId = localStorage.getItem('adminId');
+
+    // Validate required fields
+    if (!week || !month || !year) {
+        alert('Vui lòng chọn đầy đủ Tuần, Tháng và Năm để xuất báo cáo');
+        return;
+    }
+
+    console.log('[Export] Starting export...', { month, week, year, adminId });
 
     let url = `/api/v1/admin/export/registrations?v=1`;
     if(adminId && adminId !== 'null') url += `&adminId=${adminId}`;
     if(month) url += `&month=${month}`;
     if(week) url += `&week=${week}`;
     if(year) url += `&year=${year}`;
-    if(status) url += `&status=${status}`;
-    if(province) url += `&province=${encodeURIComponent(province)}`;
-    
+
     // Show a small toast or indicator
     const btnExport = document.getElementById('btnExport');
     let originalText = '';
-    
+
     if (btnExport) {
         originalText = btnExport.innerHTML;
         btnExport.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang tải...';
         btnExport.disabled = true;
     }
+
+    // Close modal
+    const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+    exportModal.hide();
 
     fetch(url, {
         headers: getHeaders()
@@ -293,14 +411,12 @@ function exportData() {
     })
     .then(blob => {
         console.log('[Export] Blob received size:', blob.size);
-        // Force BOM for Excel
-        const newBlob = new Blob([blob], { type: 'text/csv;charset=utf-8;' });
-        
-        const url = window.URL.createObjectURL(newBlob);
+
+        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `ds_dang_ky_tuan_${week || 'all'}_${new Date().getTime()}.csv`;
+        a.download = `ds_dang_ky_tuan_${week || 'all'}_${new Date().getTime()}.xlsx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -383,11 +499,19 @@ function showDetail(id) {
                 <div class="mb-4">
                     <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Thông tin thăm gặp</h6>
                     <div class="row g-2 ps-1">
-                        <div class="col-6">
+                        <div class="col-4">
                             <small class="text-muted d-block">Tuần</small>
                             <span class="badge bg-info">Tuần ${data.visitWeek}</span>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
+                            <small class="text-muted d-block">Tháng</small>
+                            <span class="badge bg-secondary">Tháng ${data.visitMonth}</span>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Năm</small>
+                            <span class="badge bg-success">Năm ${data.visitYear}</span>
+                        </div>
+                        <div class="col-12 mt-2">
                             <small class="text-muted d-block">Tỉnh/TP</small>
                             <span class="fw-bold text-dark">${data.province}</span>
                         </div>
