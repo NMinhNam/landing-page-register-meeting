@@ -107,3 +107,53 @@ body {
         font-size: 0.8rem;
     }
 }
+
+/* Improved Input Group Styling */
+.input-group .form-select,
+.input-group .btn,
+.input-group .form-control {
+    min-width: 0; /* Allow flex to control width properly */
+}
+
+/* Better alignment for refresh interval and export button */
+.refresh-export-container {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+.refresh-export-container .input-group {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.refresh-export-container .input-group:first-child {
+    width: 160px;
+}
+
+.refresh-export-container .input-group:last-child {
+    width: 140px;
+}
+
+/* Enhanced button styling */
+.btn-outline-success {
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-outline-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments for filter controls */
+@media (max-width: 768px) {
+    .refresh-export-container {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    .refresh-export-container .input-group {
+        flex: 1 1 140px;
+    }
+}

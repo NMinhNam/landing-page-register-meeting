@@ -26,9 +26,25 @@
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light px-4">
     <a class="navbar-brand fw-bold text-primary" href="/admin/dashboard"><i class="fas fa-shield-alt"></i> Đơn Vị Quản Lý</a>
-    <div class="ms-auto d-flex align-items-center">
-        <span class="me-3 text-muted small">Xin chào, <span id="usernameDisplay">Admin</span></span>
-        <button class="btn btn-sm btn-outline-danger" onclick="logout()">Thoát</button>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+                <a class="nav-link active fw-bold text-primary" href="/admin/dashboard">Tổng quan</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/units">Đơn vị</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/soldiers">Quân nhân</a>
+            </li>
+        </ul>
+        <div class="ms-auto d-flex align-items-center">
+            <span class="me-3 text-muted small">Xin chào, <span id="usernameDisplay">Admin</span></span>
+            <button class="btn btn-sm btn-outline-danger" onclick="logout()">Thoát</button>
+        </div>
     </div>
 </nav>
 
@@ -134,37 +150,46 @@
     <!-- Filter & Content -->
     <div class="card table-card">
         <div class="card-header bg-white py-3 border-bottom-0">
-            <div class="row g-3 align-items-center">
-                <div class="col-md-3">
-                    <input type="text" class="form-control form-control-sm" id="searchKeyword" placeholder="Tìm tên, SĐT..." oninput="debounceLoadData()">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3 col-lg-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control form-control-sm border-start-0" id="searchKeyword" placeholder="Tìm tên, SĐT..." oninput="debounceLoadData()">
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <select class="form-select form-select-sm" id="filterProvince" onchange="loadData()">
-                        <option value="">-- Tất cả Tỉnh/TP --</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select class="form-select form-select-sm" id="filterStatus" onchange="loadData()">
-                        <option value="">Tất cả trạng thái</option>
-                        <option value="PENDING">Chờ duyệt</option>
-                        <option value="APPROVED">Đã duyệt</option>
-                        <option value="REJECTED">Từ chối</option>
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <div class="input-group shadow-sm">
-                        <span class="input-group-text bg-primary text-white border-primary"><i class="fas fa-sync-alt"></i></span>
-                        <select class="form-select fw-bold text-primary border-primary" id="refreshInterval" onchange="changeRefreshInterval()">
-                            <option value="5000">Tự động 5s</option>
-                            <option value="10000" selected>Tự động 10s</option>
-                            <option value="15000">Tự động 15s</option>
-                            <option value="30000">Tự động 30s</option>
-                            <option value="0">Tắt tự động</option>
+                <div class="col-md-2 col-lg-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-map-marker-alt"></i></span>
+                        <select class="form-select form-select-sm border-start-0" id="filterProvince" onchange="loadData()">
+                            <option value="">Tỉnh/TP</option>
                         </select>
                     </div>
-                    <div class="input-group shadow-sm">
+                </div>
+                <div class="col-md-2 col-lg-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-filter"></i></span>
+                        <select class="form-select form-select-sm border-start-0" id="filterStatus" onchange="loadData()">
+                            <option value="">Trạng thái</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value="APPROVED">Đã duyệt</option>
+                            <option value="REJECTED">Từ chối</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-5 col-lg-6 refresh-export-container">
+                    <div class="input-group input-group-sm shadow-sm">
+                        <span class="input-group-text bg-primary text-white border-primary"><i class="fas fa-sync-alt"></i></span>
+                        <select class="form-select form-select-sm fw-bold text-primary border-primary" id="refreshInterval" onchange="changeRefreshInterval()">
+                            <option value="5000">5s</option>
+                            <option value="10000" selected>10s</option>
+                            <option value="15000">15s</option>
+                            <option value="30000">30s</option>
+                            <option value="0">Tắt</option>
+                        </select>
+                    </div>
+                    <div class="input-group input-group-sm shadow-sm">
                         <span class="input-group-text bg-success text-white border-success"><i class="fas fa-file-excel"></i></span>
-                        <button id="btnExport" class="btn btn-outline-success btn-sm w-100" onclick="exportData()" title="Xuất báo cáo">Excel</button>
+                        <button id="btnExport" class="btn btn-outline-success btn-sm fw-bold" onclick="exportData()" title="Xuất báo cáo">Xuất Excel</button>
                     </div>
                 </div>
             </div>
