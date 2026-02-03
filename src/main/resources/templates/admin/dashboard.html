@@ -11,49 +11,47 @@
     <!-- Icon -->
     <link rel="icon" type="image/x-icon" th:href="@{/star.ico}">
     <style>
-        /* body style handled by style.css */
         .navbar {
-            background-color: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
 
-        .card-stat {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-            transition: transform 0.2s;
+        .nav-link {
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s;
         }
 
-        .card-stat:hover {
-            transform: translateY(-3px);
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--vn-green-primary) !important;
         }
 
-        .table-card {
-            border-radius: 10px;
-            border: none;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-            overflow: hidden;
+        .nav-link.active {
+            position: relative;
         }
 
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            border-radius: 20px;
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background-color: var(--vn-green-primary);
+            border-radius: 2px 2px 0 0;
         }
 
-        .bg-pending {
-            background-color: #fff3cd;
-            color: #856404;
+        /* Stats Cards */
+        .card-stat h3 {
+            font-size: 2.25rem;
+            margin-bottom: 0.25rem;
         }
 
-        .bg-approved {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .bg-rejected {
-            background-color: #f8d7da;
-            color: #721c24;
+        .bg-light-glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
@@ -61,247 +59,227 @@
 <body>
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light px-4">
-        <a class="navbar-brand fw-bold text-primary" href="/admin/dashboard"><i class="fas fa-shield-alt"></i> Đơn Vị
-            Quản Lý</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link active fw-bold text-primary" href="/admin/dashboard">Tổng quan</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/units">Đơn vị</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/admin/soldiers">Quân nhân</a>
-                </li>
-            </ul>
-            <div class="ms-auto d-flex align-items-center">
-                <span class="me-3 text-muted small">Xin chào, <span id="usernameDisplay">Admin</span></span>
-                <button class="btn btn-sm btn-outline-danger" onclick="logout()">Thoát</button>
+    <nav class="navbar navbar-expand-lg sticky-top px-3 shadow-sm" style="z-index: 1020;">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-primary d-flex align-items-center gap-2" href="/admin/dashboard">
+                <i class="fas fa-shield-alt fa-lg"></i>
+                <span class="d-none d-sm-inline">QUẢN LÝ THĂM GẶP</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item px-2">
+                        <a class="nav-link active" href="/admin/dashboard"><i class="fas fa-chart-pie me-1"></i> Tổng
+                            quan</a>
+                    </li>
+                    <li class="nav-item px-2">
+                        <a class="nav-link" href="/admin/units"><i class="fas fa-sitemap me-1"></i> Đơn vị</a>
+                    </li>
+                    <li class="nav-item px-2">
+                        <a class="nav-link" href="/admin/soldiers"><i class="fas fa-user-shield me-1"></i> Quân nhân</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-none d-md-block text-end lh-1">
+                        <small class="text-muted d-block" style="font-size: 0.7rem;">Xin chào</small>
+                        <span class="fw-bold text-dark small" id="usernameDisplay">Admin</span>
+                    </div>
+                    <button class="btn btn-light btn-sm rounded-circle shadow-sm text-danger" onclick="logout()"
+                        title="Đăng xuất" style="width: 32px; height: 32px;">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container-fluid py-4 px-4">
+    <div class="container-fluid py-4 px-3 px-md-4">
 
-        <!-- Week & Month & Year Filter (Top for Mobile) -->
-        <div class="row mb-3 g-2">
-            <div class="col-12 col-md-4 col-lg-2">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-primary text-white border-primary"><i
-                            class="fas fa-calendar-week"></i></span>
-                    <select class="form-select fw-bold text-primary border-primary" id="filterWeek"
-                        onchange="loadData()">
-                        <option value="">-- Tất cả các tuần --</option>
-                        <option value="1">Tuần 1</option>
-                        <option value="2">Tuần 2</option>
-                        <option value="3">Tuần 3</option>
-                        <option value="4">Tuần 4</option>
-                        <option value="5">Tuần 5</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-12 col-md-4 col-lg-2">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-primary text-white border-primary"><i
-                            class="fas fa-calendar"></i></span>
-                    <select class="form-select fw-bold text-primary border-primary" id="filterMonth"
-                        onchange="loadData()">
-                        <option value="">-- Tất cả tháng --</option>
-                        <option value="01">Tháng 1</option>
-                        <option value="02">Tháng 2</option>
-                        <option value="03">Tháng 3</option>
-                        <option value="04">Tháng 4</option>
-                        <option value="05">Tháng 5</option>
-                        <option value="06">Tháng 6</option>
-                        <option value="07">Tháng 7</option>
-                        <option value="08">Tháng 8</option>
-                        <option value="09">Tháng 9</option>
-                        <option value="10">Tháng 10</option>
-                        <option value="11">Tháng 11</option>
-                        <option value="12">Tháng 12</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-12 col-md-4 col-lg-2">
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-primary text-white border-primary"><i
-                            class="fas fa-calendar-alt"></i></span>
-                    <select class="form-select fw-bold text-primary border-primary" id="filterYear"
-                        onchange="loadData()">
-                        <option value="">-- Tất cả năm --</option>
-                        <option value="2024">Năm 2024</option>
-                        <option value="2025">Năm 2025</option>
-                        <option value="2026">Năm 2026</option>
-                    </select>
+        <!-- Filters -->
+        <div class="card bg-white border-0 shadow-sm mb-4">
+            <div class="card-body p-2">
+                <div class="row g-2">
+                    <div class="col-4 col-md-2">
+                        <select class="form-select form-select-sm border-0 bg-light fw-bold" id="filterWeek"
+                            onchange="loadData()">
+                            <option value="">-- Tuần --</option>
+                            <option value="1">Tuần 1</option>
+                            <option value="2">Tuần 2</option>
+                            <option value="3">Tuần 3</option>
+                            <option value="4">Tuần 4</option>
+                            <option value="5">Tuần 5</option>
+                        </select>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <select class="form-select form-select-sm border-0 bg-light fw-bold" id="filterMonth"
+                            onchange="loadData()">
+                            <option value="">-- Tháng --</option>
+                            <option value="01">Tháng 1</option>
+                            <option value="02">Tháng 2</option>
+                            <option value="03">Tháng 3</option>
+                            <option value="04">Tháng 4</option>
+                            <option value="05">Tháng 5</option>
+                            <option value="06">Tháng 6</option>
+                            <option value="07">Tháng 7</option>
+                            <option value="08">Tháng 8</option>
+                            <option value="09">Tháng 9</option>
+                            <option value="10">Tháng 10</option>
+                            <option value="11">Tháng 11</option>
+                            <option value="12">Tháng 12</option>
+                        </select>
+                    </div>
+                    <div class="col-4 col-md-2">
+                        <select class="form-select form-select-sm border-0 bg-light fw-bold" id="filterYear"
+                            onchange="loadData()">
+                            <option value="">-- Năm --</option>
+                            <option value="2024">2024</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex justify-content-end align-items-center gap-2">
+                        <div class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
+                            <i class="fas fa-sync-alt text-muted small"></i>
+                            <select class="form-select form-select-sm border-0 bg-transparent py-0 ps-1 pe-3"
+                                id="refreshInterval" onchange="changeRefreshInterval()" style="width: auto;">
+                                <option value="5000">5s</option>
+                                <option value="10000" selected>10s</option>
+                                <option value="30000">30s</option>
+                                <option value="0">Tắt</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Stats Row -->
-        <div class="row mb-4">
-            <div class="col-6 col-md-3">
-                <div class="card card-stat p-3">
-                    <div class="d-flex justify-content-between align-items-center">
+        <div class="row mb-4 g-3">
+            <div class="col-12 col-md-4">
+                <div class="card card-stat bg-white text-muted h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
-                            <small class="text-muted text-uppercase">Chờ duyệt</small>
-                            <h3 class="fw-bold text-warning" id="countPending">0</h3>
+                            <span class="badge bg-warning bg-opacity-10 text-warning mb-2">Chờ duyệt</span>
+                            <h3 class="fw-bold text-dark" id="countPending">0</h3>
                         </div>
-                        <i class="fas fa-clock fa-2x text-black-50 opacity-25"></i>
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+                            style="width: 60px; height: 60px;">
+                            <i class="fas fa-clock fa-lg text-warning"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card card-stat p-3">
-                    <div class="d-flex justify-content-between align-items-center">
+            <div class="col-6 col-md-4">
+                <div class="card card-stat bg-white text-muted h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
-                            <small class="text-muted text-uppercase">Đã duyệt</small>
-                            <h3 class="fw-bold text-success" id="countApproved">0</h3>
+                            <span class="badge bg-success bg-opacity-10 text-success mb-2">Đã duyệt</span>
+                            <h3 class="fw-bold text-dark" id="countApproved">0</h3>
                         </div>
-                        <i class="fas fa-check-circle fa-2x text-black-50 opacity-25"></i>
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+                            style="width: 60px; height: 60px;">
+                            <i class="fas fa-check fa-lg text-success"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-md-3">
-                <div class="card card-stat p-3">
-                    <div class="d-flex justify-content-between align-items-center">
+            <div class="col-6 col-md-4">
+                <div class="card card-stat bg-white text-muted h-100">
+                    <div class="card-body d-flex justify-content-between align-items-center">
                         <div>
-                            <small class="text-muted text-uppercase">Từ chối</small>
-                            <h3 class="fw-bold text-danger" id="countRejected">0</h3>
+                            <span class="badge bg-danger bg-opacity-10 text-danger mb-2">Từ chối</span>
+                            <h3 class="fw-bold text-dark" id="countRejected">0</h3>
                         </div>
-                        <i class="fas fa-times-circle fa-2x text-black-50 opacity-25"></i>
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3 d-flex align-items-center justify-content-center"
+                            style="width: 60px; height: 60px;">
+                            <i class="fas fa-times fa-lg text-danger"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Province Statistics -->
-        <div class="card table-card mb-4">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold"><i class="fas fa-map-marker-alt text-primary"></i> Thống kê theo Tỉnh/Thành phố
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row" id="provinceStatsContainer">
-                    <div class="col-12 text-center text-muted small">Đang tải dữ liệu...</div>
+        <!-- Main Content Grid -->
+        <div class="row g-4">
+            <!-- Province Stats (Left on Desktop) -->
+            <div class="col-12 col-lg-3 order-lg-2">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-0 pt-3 pb-0">
+                        <h6 class="fw-bold text-uppercase small ls-1 text-muted">Thống kê theo Tỉnh</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-column gap-2" id="provinceStatsContainer">
+                            <div class="text-center text-muted small py-4">Đang tải dữ liệu...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Filter & Content -->
-        <div class="card table-card">
-            <div class="card-header bg-white py-3 border-bottom-0">
-                <div class="row g-2 align-items-center">
-                    <div class="col-md-3 col-lg-2">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light text-muted border-end-0"><i
-                                    class="fas fa-search"></i></span>
-                            <input type="text" class="form-control form-control-sm border-start-0" id="searchKeyword"
-                                placeholder="Tìm tên, SĐT..." oninput="debounceLoadData()">
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-lg-2">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light text-muted border-end-0"><i
-                                    class="fas fa-map-marker-alt"></i></span>
-                            <select class="form-select form-select-sm border-start-0" id="filterProvince"
-                                onchange="loadData()">
-                                <option value="">Tỉnh/TP</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-2 col-lg-2">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-light text-muted border-end-0"><i
-                                    class="fas fa-filter"></i></span>
-                            <select class="form-select form-select-sm border-start-0" id="filterStatus"
-                                onchange="loadData()">
-                                <option value="">Trạng thái</option>
+            <!-- Main Table (Right on Desktop) -->
+            <div class="col-12 col-lg-9 order-lg-1">
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div
+                        class="card-header bg-white py-3 border-bottom d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                        <div class="d-flex gap-2 flex-grow-1">
+                            <div class="input-group input-group-sm" style="max-width: 250px;">
+                                <span class="input-group-text bg-light border-end-0"><i
+                                        class="fas fa-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0" id="searchKeyword"
+                                    placeholder="Tìm tên, SĐT..." oninput="debounceLoadData()">
+                            </div>
+                            <select class="form-select form-select-sm w-auto" id="filterStatus" onchange="loadData()">
+                                <option value="">Tất cả trạng thái</option>
                                 <option value="PENDING">Chờ duyệt</option>
                                 <option value="APPROVED">Đã duyệt</option>
                                 <option value="REJECTED">Từ chối</option>
                             </select>
                         </div>
+                        <button id="btnExport" class="btn btn-outline-success btn-sm fw-bold" onclick="exportData()">
+                            <i class="fas fa-file-excel me-1"></i> Xuất Excel
+                        </button>
                     </div>
-                    <div class="col-md-5 col-lg-6 d-flex align-items-center justify-content-end gap-2">
-                        <div class="input-group input-group-sm shadow-sm w-auto">
-                            <span class="input-group-text bg-primary text-white border-primary"><i
-                                    class="fas fa-sync-alt"></i></span>
-                            <select class="form-select form-select-sm fw-bold text-primary border-primary"
-                                id="refreshInterval" onchange="changeRefreshInterval()"
-                                style="width: 80px; flex: none;">
-                                <option value="5000">5s</option>
-                                <option value="10000" selected>10s</option>
-                                <option value="15000">15s</option>
-                                <option value="30000">30s</option>
-                                <option value="0">Tắt</option>
-                            </select>
-                        </div>
-                        <div class="input-group input-group-sm shadow-sm w-auto">
-                            <span class="input-group-text bg-success text-white border-success"><i
-                                    class="fas fa-file-excel"></i></span>
-                            <button id="btnExport" class="btn btn-outline-success btn-sm fw-bold" onclick="exportData()"
-                                title="Xuất báo cáo">Xuất Excel</button>
-                        </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                            <thead class="bg-light text-secondary text-uppercase small fw-bold">
+                                <tr>
+                                    <th class="ps-4 border-0">Thông tin</th>
+                                    <th class="border-0">Người đăng ký</th>
+                                    <th class="border-0 d-none d-md-table-cell">Lịch trình</th>
+                                    <th class="border-0 text-center">Trạng thái</th>
+                                    <th class="border-0 text-end pe-4">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="border-top-0">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-white border-0 py-3 text-muted small text-center">
+                        Hiển thị 10 kết quả mới nhất
                     </div>
                 </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="bg-light text-muted small text-uppercase">
-                        <tr>
-                            <th class="ps-4 d-md-none">Thông tin</th>
-                            <th class="ps-4 d-none d-md-table-cell">Ngày gửi</th>
-                            <th class="d-none d-md-table-cell">Quân Nhân</th>
-                            <th class="d-none d-md-table-cell">Đơn vị</th>
-                            <th class="d-none d-md-table-cell">Người Thân (SL)</th>
-                            <th class="d-none d-md-table-cell">SĐT</th>
-                            <th class="d-none d-md-table-cell">Tuần</th>
-                            <th class="d-none d-md-table-cell">Tháng</th>
-                            <th class="d-none d-md-table-cell">Năm</th>
-                            <th class="d-none d-md-table-cell">Tỉnh/TP</th>
-                            <th class="text-nowrap" style="width: 1%;">Trạng thái</th>
-                            <th class="text-end pe-4 text-nowrap" style="width: 1%;">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- JS will populate -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="card-footer bg-white border-0 py-3 text-muted small text-center">
-                Hiển thị 10 kết quả mới nhất
             </div>
         </div>
     </div>
 
     <!-- Modal Duyệt -->
     <div class="modal fade" id="approvalModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto"
-            style="max-width: 95%; width: 405px;">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">Xử lý đăng ký</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg modal-glass">
+                <div class="modal-body p-4 text-center">
+                    <h5 class="fw-bold mb-3">Xử lý yêu cầu</h5>
                     <input type="hidden" id="currentRegId">
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">Ghi chú / Lý do (nếu từ chối)</label>
-                        <textarea class="form-control border-light bg-light" id="approvalNote" rows="4"
-                            placeholder="Nhập lý do..."></textarea>
-                    </div>
+                    <textarea class="form-control bg-light border-0 mb-3" id="approvalNote" rows="3"
+                        placeholder="Nhập ghi chú..."></textarea>
                     <div class="d-grid gap-2">
-                        <button class="btn btn-success py-2 rounded-pill fw-bold" onclick="submitStatus('APPROVED')">
-                            <i class="fas fa-check me-2"></i> ĐỒNG Ý CHO THĂM
+                        <button class="btn btn-success fw-bold" onclick="submitStatus('APPROVED')">
+                            <i class="fas fa-check me-2"></i> Đồng ý
                         </button>
-                        <button class="btn btn-outline-danger py-2 rounded-pill fw-bold"
-                            onclick="submitStatus('REJECTED')">
-                            <i class="fas fa-times me-2"></i> TỪ CHỐI
+                        <button class="btn btn-light text-danger fw-bold" onclick="submitStatus('REJECTED')">
+                            Từ chối
                         </button>
                     </div>
                 </div>
@@ -311,19 +289,14 @@
 
     <!-- Modal Chi Tiết -->
     <div class="modal fade" id="detailModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto"
-            style="max-width: 95%; width: 505px;">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
-                <div class="modal-header bg-primary text-white border-0" style="border-radius: 15px 15px 0 0;">
-                    <h5 class="modal-title fs-6 fw-bold"><i class="fas fa-info-circle me-2"></i>Chi tiết hồ sơ</h5>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg overflow-hidden">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fs-6 fw-bold text-uppercase ls-1">Chi tiết hồ sơ</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0 bg-light" id="detailModalBody">
                     <!-- Nội dung sẽ được load từ JS -->
-                </div>
-                <div class="modal-footer border-0 bg-white p-3">
-                    <button type="button" class="btn btn-secondary w-100 rounded-pill"
-                        data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,89 +11,118 @@
     <link rel="icon" type="image/x-icon" th:href="@{/star.ico}">
     <style>
         body {
-            background-color: #eef2f7;
+            /* Override to center everything */
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
         }
+
         .login-card {
             width: 100%;
-            max-width: 400px;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            max-width: 420px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.8);
         }
+
         .login-header {
-            background-color: #4a90e2;
+            background: linear-gradient(135deg, var(--vn-green-primary) 0%, var(--vn-green-light) 100%);
             color: white;
-            border-radius: 12px 12px 0 0;
-            padding: 20px;
+            padding: 40px 20px;
             text-align: center;
+            position: relative;
         }
-        .btn-primary-soft {
-            background-color: #4a90e2;
-            border-color: #4a90e2;
-        }
-        .btn-primary-soft:hover {
-            background-color: #357abd;
+
+        .login-header i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
         }
     </style>
 </head>
+
 <body>
 
-<div class="card login-card">
-    <div class="login-header">
-        <h4 class="mb-0">Hệ Thống Quản Lý</h4>
-        <small>Đăng nhập cán bộ</small>
-    </div>
-    <div class="card-body p-4">
-        <form id="loginForm">
-            <div class="mb-3">
-                <label class="form-label text-muted">Tên đăng nhập</label>
-                <input type="text" class="form-control" id="username" required value="admin">
+    <div class="card login-card px-0 border-0">
+        <div class="login-header">
+            <i class="fas fa-shield-alt text-warning"></i>
+            <h4 class="mb-1 fw-bold">Unit Administration</h4>
+            <small class="opacity-75">Cổng thông tin quản lý thăm gặp</small>
+        </div>
+        <div class="card-body p-4 pt-5">
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase text-muted ls-1">Tên đăng nhập</label>
+                    <input type="text" class="form-control form-control-lg bg-light border-0" id="username" required
+                        value="admin" placeholder="Username">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-uppercase text-muted ls-1">Mật khẩu</label>
+                    <input type="password" class="form-control form-control-lg bg-light border-0" id="password" required
+                        value="admin123" placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-hover mt-3">ĐĂNG NHẬP HỆ
+                    THỐNG</button>
+            </form>
+            <div id="errorMsg"
+                class="alert alert-danger mt-4 mb-0 small text-center rounded-3 border-0 bg-danger bg-opacity-10 text-danger fw-bold"
+                style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i> Sai thông tin đăng nhập
             </div>
-            <div class="mb-3">
-                <label class="form-label text-muted">Mật khẩu</label>
-                <input type="password" class="form-control" id="password" required value="admin123">
+
+            <div class="text-center mt-4">
+                <a href="/" class="text-muted small text-decoration-none hover-underline"><i
+                        class="fas fa-arrow-left me-1"></i> Quay về trang chủ</a>
             </div>
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary btn-primary-soft py-2">Đăng nhập</button>
-            </div>
-        </form>
-        <div id="errorMsg" class="alert alert-danger mt-3 small" style="display: none;">
-            Sai thông tin đăng nhập
         </div>
     </div>
-</div>
 
-<script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
 
-        fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(res => {
-            if(res.ok) return res.json();
-            throw new Error('Login failed');
-        })
-        .then(data => {
-            localStorage.setItem('adminToken', data.token);
-            localStorage.setItem('adminId', data.id);
-            localStorage.setItem('adminUnitId', data.unitId);
-            localStorage.setItem('adminRole', data.role);
-            localStorage.setItem('adminUser', data.username);
-            window.location.href = '/admin/dashboard';
-        })
-        .catch(err => {
-            document.getElementById('errorMsg').style.display = 'block';
+            // Simple loading state
+            const btn = this.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+                .then(res => {
+                    if (res.ok) return res.json();
+                    throw new Error('Login failed');
+                })
+                .then(data => {
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminId', data.id);
+                    localStorage.setItem('adminUnitId', data.unitId);
+                    localStorage.setItem('adminRole', data.role);
+                    localStorage.setItem('adminUser', data.username);
+
+                    // Success animation or redirect
+                    btn.innerHTML = '<i class="fas fa-check"></i> Success';
+                    btn.classList.add('btn-success');
+                    setTimeout(() => window.location.href = '/admin/dashboard', 500);
+                })
+                .catch(err => {
+                    errorMsg.style.display = 'block';
+                    errorMsg.classList.add('shake'); // Add CSS animation class if defined
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
         });
-    });
-</script>
+    </script>
 </body>
+
 </html>
