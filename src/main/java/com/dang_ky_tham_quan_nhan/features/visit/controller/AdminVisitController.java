@@ -1,5 +1,6 @@
 package com.dang_ky_tham_quan_nhan.features.visit.controller;
 
+import com.dang_ky_tham_quan_nhan.features.visit.dto.AdminVisitResponse;
 import com.dang_ky_tham_quan_nhan.features.visit.dto.UpdateStatusRequest;
 import com.dang_ky_tham_quan_nhan.features.visit.service.VisitService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,9 +33,18 @@ public class AdminVisitController {
             @RequestParam(required = false) String year,
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) Long adminId
-    ) {
+            @RequestParam(required = false) Long adminId) {
         try {
+            // Sanitize inputs
+            if (month != null && month.trim().isEmpty())
+                month = null;
+            if (year != null && year.trim().isEmpty())
+                year = null;
+            if (province != null && province.trim().isEmpty())
+                province = null;
+            if (status != null && status.trim().isEmpty())
+                status = null;
+
             byte[] content = visitService.exportRegistrations(unitId, month, week, year, province, status, adminId);
 
             return ResponseEntity.ok()
@@ -59,11 +69,11 @@ public class AdminVisitController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String adminId,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
+            @RequestParam(defaultValue = "10") int size) {
 
         Long parsedAdminId = null;
-        if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId) && !"undefined".equalsIgnoreCase(adminId)) {
+        if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId)
+                && !"undefined".equalsIgnoreCase(adminId)) {
             try {
                 parsedAdminId = Long.parseLong(adminId);
             } catch (NumberFormatException e) {
@@ -71,7 +81,20 @@ public class AdminVisitController {
             }
         }
 
-        List<Map<String, Object>> data = visitService.searchAdmin(unitId, month, week, year, province, status, keyword, parsedAdminId);
+        // Sanitize inputs: Convert empty strings to null
+        if (month != null && month.trim().isEmpty())
+            month = null;
+        if (year != null && year.trim().isEmpty())
+            year = null;
+        if (province != null && province.trim().isEmpty())
+            province = null;
+        if (status != null && status.trim().isEmpty())
+            status = null;
+        if (keyword != null && keyword.trim().isEmpty())
+            keyword = null;
+
+        List<AdminVisitResponse> data = visitService.searchAdmin(unitId, month, week, year, province, status, keyword,
+                parsedAdminId);
         return Map.of("data", data, "total", data.size());
     }
 
@@ -99,10 +122,10 @@ public class AdminVisitController {
             @RequestParam(required = false) String month,
             @RequestParam(required = false) Integer week,
             @RequestParam(required = false) String year,
-            @RequestParam(required = false) String adminId
-    ) {
+            @RequestParam(required = false) String adminId) {
         Long parsedAdminId = null;
-        if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId) && !"undefined".equalsIgnoreCase(adminId)) {
+        if (adminId != null && !adminId.isEmpty() && !"null".equalsIgnoreCase(adminId)
+                && !"undefined".equalsIgnoreCase(adminId)) {
             try {
                 parsedAdminId = Long.parseLong(adminId);
             } catch (NumberFormatException e) {

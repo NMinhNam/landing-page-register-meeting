@@ -7,16 +7,16 @@ function init() {
     const btnAddRelative = document.getElementById('btnAddRelative');
     console.log('btnAddRelative found:', btnAddRelative);
     if (btnAddRelative) {
-        btnAddRelative.addEventListener('click', function() {
+        btnAddRelative.addEventListener('click', function () {
             console.log('btnAddRelative clicked!');
             addRelative();
         });
     }
-    
+
     const registrationForm = document.getElementById('registrationForm');
     console.log('registrationForm found:', registrationForm);
     if (registrationForm) {
-        registrationForm.addEventListener('submit', function(e) {
+        registrationForm.addEventListener('submit', function (e) {
             console.log('Form submitted!');
             submitRegistration(e);
         });
@@ -25,7 +25,7 @@ function init() {
     const btnOpenLookup = document.getElementById('btnOpenLookup');
     console.log('btnOpenLookup found:', btnOpenLookup);
     if (btnOpenLookup) {
-        btnOpenLookup.addEventListener('click', function() {
+        btnOpenLookup.addEventListener('click', function () {
             console.log('btnOpenLookup clicked!');
             openLookupModal();
         });
@@ -34,7 +34,7 @@ function init() {
     const btnPerformLookup = document.getElementById('btnPerformLookup');
     console.log('btnPerformLookup found:', btnPerformLookup);
     if (btnPerformLookup) {
-        btnPerformLookup.addEventListener('click', function() {
+        btnPerformLookup.addEventListener('click', function () {
             console.log('btnPerformLookup clicked!');
             performLookup();
         });
@@ -53,7 +53,7 @@ let relativeCount = 1;
 function showToast(message, type = 'danger') {
     const toastEl = document.getElementById('liveToast');
     const toastMessage = document.getElementById('toastMessage');
-    
+
     // Set color based on type
     toastEl.classList.remove('bg-danger', 'bg-success', 'bg-warning', 'bg-info');
     if (type === 'success') toastEl.classList.add('bg-success');
@@ -62,96 +62,13 @@ function showToast(message, type = 'danger') {
     else toastEl.classList.add('bg-danger');
 
     toastMessage.textContent = message;
-    
+
     const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
     toast.show();
 }
 
-function submitRegistrationForm(event) {
-    console.log('submitRegistrationForm called via onclick!');
-    event.preventDefault();
-    
-    const unitName = document.getElementById('manualUnitName').value.trim();
-    const soldierName = document.getElementById('manualSoldierName').value.trim();
-    const representativePhone = document.getElementById('representativePhone').value.trim();
-    const province = document.getElementById('province').value.trim();
+// function submitRegistrationForm(event) - REMOVED (Duplicate)
 
-    console.log('Form data:', { unitName, soldierName, representativePhone, province });
-
-    // Validation
-    if (!unitName) { showToast("Vui lòng nhập tên đơn vị"); return; }
-    if (!soldierName) { showToast("Vui lòng nhập tên quân nhân"); return; }
-    if (!representativePhone) { showToast("Vui lòng nhập SĐT đại diện"); return; }
-    if (!/^\d+$/.test(representativePhone)) { showToast("SĐT đại diện phải là số"); return; }
-    if (!province) { showToast("Vui lòng nhập Tỉnh/Thành phố"); return; }
-
-    // Gather relatives
-    const relativeItems = document.querySelectorAll('.relative-item');
-    const relatives = [];
-    let hasError = false;
-
-    relativeItems.forEach(item => {
-        if(hasError) return;
-        const name = item.querySelector('[name="relativeName"]').value.trim();
-        const idNum = item.querySelector('[name="idNumber"]').value.trim();
-        const rel = item.querySelector('[name="relationship"]').value;
-
-        if(!name || !idNum || !rel) {
-            showToast("Vui lòng điền đầy đủ thông tin người thăm");
-            hasError = true;
-            return;
-        }
-        if(!/^\d+$/.test(idNum)) {
-            showToast(`CCCD của ${name} phải là số`);
-            hasError = true;
-            return;
-        }
-
-        relatives.push({ name: name, idNumber: idNum, relationship: rel });
-    });
-
-    if (hasError) return;
-
-    if (relatives.length === 0) {
-        showToast("Vui lòng nhập ít nhất 1 người thăm");
-        return;
-    }
-
-    showLoading(true);
-
-    const data = {
-        manualUnitName: unitName,
-        manualSoldierName: soldierName,
-        representativePhone: representativePhone,
-        province: province,
-        relatives: relatives
-    };
-
-    console.log('Sending data:', data);
-    
-    fetch('/api/v1/public/registrations', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        console.log('Registration response:', response);
-        if(response.ok) return response.json();
-        throw new Error('Có lỗi xảy ra khi gửi đăng ký');
-    })
-    .then(result => {
-        console.log('Registration success:', result);
-        showToast("Đăng ký thành công!", "success");
-        showStatusView(representativePhone);
-    })
-    .catch(err => {
-        console.error('Registration error:', err);
-        showToast(err.message);
-    })
-    .finally(() => showLoading(false));
-}
 
 let cachedUnits = [];
 
@@ -165,36 +82,36 @@ function loadUnits() {
         .then(data => {
             console.log('[DEBUG] Units Data:', data);
             cachedUnits = data || [];
-            
+
             const parentSelect = document.getElementById('parentUnitSelect');
             const childSelect = document.getElementById('manualUnitName');
-            
+
             if (!parentSelect || !childSelect) return;
-            
+
             // 1. Populate Parent Units (Roots)
             parentSelect.innerHTML = '<option value="">-- Chọn Cấp trên --</option>';
-            
+
             // Filter units with no parentId (Roots)
             const roots = cachedUnits.filter(u => !u.parentId);
             roots.sort((a, b) => a.name.localeCompare(b.name));
-            
+
             roots.forEach(unit => {
                 const option = document.createElement('option');
                 option.value = unit.id; // Use ID for filtering children
                 option.textContent = unit.name;
                 parentSelect.appendChild(option);
             });
-            
+
             // 2. Add Event Listener
-            parentSelect.addEventListener('change', function() {
+            parentSelect.addEventListener('change', function () {
                 const parentId = this.value;
                 childSelect.innerHTML = '<option value="">-- Chọn Đơn vị --</option>';
                 childSelect.disabled = true;
-                
+
                 if (parentId) {
                     // Filter children
                     const children = cachedUnits.filter(u => u.parentId == parentId);
-                    
+
                     if (children.length > 0) {
                         children.sort((a, b) => a.name.localeCompare(b.name));
                         children.forEach(unit => {
@@ -207,9 +124,9 @@ function loadUnits() {
                     } else {
                         // Edge case: Parent has no children, maybe allow selecting parent itself?
                         // For now, just show message
-                         const option = document.createElement('option');
-                         option.text = "Không có đơn vị trực thuộc";
-                         childSelect.add(option);
+                        const option = document.createElement('option');
+                        option.text = "Không có đơn vị trực thuộc";
+                        childSelect.add(option);
                     }
                 }
             });
@@ -237,12 +154,12 @@ function loadProvinces() {
             console.log('Provinces data loaded:', data.length, 'items');
             const select = document.getElementById('province');
             console.log('Province select element found:', select);
-            
+
             if (!select) {
                 console.error('Province select element not found!');
                 return;
             }
-            
+
             // Sort by name alphabetically
             data.sort((a, b) => a.name.localeCompare(b.name));
             data.forEach(p => {
@@ -258,8 +175,8 @@ function loadProvinces() {
             // Fallback: add some common provinces manually
             const select = document.getElementById('province');
             if (select) {
-                const provinces = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 
-                                 'Bắc Ninh', 'Bình Dương', 'Đồng Nai', 'Vĩnh Phúc', 'Hưng Yên'];
+                const provinces = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
+                    'Bắc Ninh', 'Bình Dương', 'Đồng Nai', 'Vĩnh Phúc', 'Hưng Yên'];
                 provinces.forEach(p => {
                     const option = document.createElement('option');
                     option.value = p;
@@ -319,7 +236,7 @@ function removeRelative(btn) {
 
 function submitRegistration(e) {
     e.preventDefault();
-    
+
     const unitName = document.getElementById('manualUnitName').value.trim();
     const soldierName = document.getElementById('manualSoldierName').value.trim();
     const representativePhone = document.getElementById('representativePhone').value.trim();
@@ -338,17 +255,17 @@ function submitRegistration(e) {
     let hasError = false;
 
     relativeItems.forEach(item => {
-        if(hasError) return;
+        if (hasError) return;
         const name = item.querySelector('[name="relativeName"]').value.trim();
         const idNum = item.querySelector('[name="idNumber"]').value.trim();
         const rel = item.querySelector('[name="relationship"]').value;
 
-        if(!name || !idNum || !rel) {
+        if (!name || !idNum || !rel) {
             alert("Vui lòng điền đầy đủ thông tin người thăm");
             hasError = true;
             return;
         }
-        if(!/^\d+$/.test(idNum)) {
+        if (!/^\d+$/.test(idNum)) {
             alert(`CCCD của ${name} phải là số`);
             hasError = true;
             return;
@@ -373,7 +290,7 @@ function submitRegistration(e) {
         province: province,
         relatives: relatives
     };
-    
+
     fetch('/api/v1/public/registrations', {
         method: 'POST',
         headers: {
@@ -381,35 +298,35 @@ function submitRegistration(e) {
         },
         body: JSON.stringify(data)
     })
-    .then(response => {
-        if(response.ok) return response.json();
-        throw new Error('Có lỗi xảy ra');
-    })
-    .then(result => {
-        showStatusView(representativePhone);
-    })
-    .catch(err => {
-        alert(err.message);
-    })
-    .finally(() => showLoading(false));
+        .then(response => {
+            if (response.ok) return response.json();
+            throw new Error('Có lỗi xảy ra');
+        })
+        .then(result => {
+            showStatusView(representativePhone);
+        })
+        .catch(err => {
+            alert(err.message);
+        })
+        .finally(() => showLoading(false));
 }
 
 // --- Status & Lookup Logic ---
 
 function openLookupModal() {
     console.log('openLookupModal called - checking bootstrap...');
-    
+
     // Check if Bootstrap is available
     if (typeof bootstrap === 'undefined') {
         console.error('Bootstrap is not loaded!');
         alert('Bootstrap không được load. Vui lòng làm mới trang.');
         return;
     }
-    
+
     console.log('Bootstrap available:', typeof bootstrap);
     const modalElement = document.getElementById('lookupModal');
     console.log('Modal element found:', modalElement);
-    
+
     try {
         const modal = new bootstrap.Modal(modalElement);
         console.log('Modal created:', modal);
@@ -423,27 +340,27 @@ function openLookupModal() {
 function performLookup() {
     const phone = document.getElementById('lookupPhone').value;
     console.log('performLookup called with phone:', phone);
-    
-    if(!phone) {
+
+    if (!phone) {
         alert('Vui lòng nhập số điện thoại');
         return;
     }
-    
+
     console.log('Hiding modal...');
     const modalInstance = bootstrap.Modal.getInstance(document.getElementById('lookupModal'));
     console.log('Modal instance:', modalInstance);
-    
+
     if (modalInstance) {
         modalInstance.hide();
     }
-    
+
     showLoading(true);
-    
+
     console.log('Fetching registration data...');
     fetch(`/api/v1/public/registrations/search?phone=${phone}`)
         .then(res => {
             console.log('Response status:', res.status);
-            if(!res.ok) throw new Error('Không tìm thấy hồ sơ');
+            if (!res.ok) throw new Error('Không tìm thấy hồ sơ');
             return res.json();
         })
         .then(data => {
@@ -467,7 +384,7 @@ function showStatusView(phone) {
     document.getElementById('introSection').style.display = 'none';
     document.getElementById('formSection').style.display = 'none';
     document.getElementById('statusSection').style.display = 'block';
-    
+
     pollStatus(phone);
     if (pollingInterval) clearInterval(pollingInterval);
     pollingInterval = setInterval(() => pollStatus(phone), 5000);
@@ -484,15 +401,15 @@ function resetToForm() {
 
 function pollStatus(phone) {
     fetch(`/api/v1/public/registrations/search?phone=${phone}`)
-    .then(res => res.json())
-    .then(data => {
-        if (data && data.length > 0) {
-            // Sort to ensure we see the latest registration
-            data.sort((a, b) => b.id - a.id);
-            updateStatusUI(data[0]);
-        }
-    })
-    .catch(err => console.error("Polling error", err));
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                // Sort to ensure we see the latest registration
+                data.sort((a, b) => b.id - a.id);
+                updateStatusUI(data[0]);
+            }
+        })
+        .catch(err => console.error("Polling error", err));
 }
 
 function updateStatusUI(data) {
@@ -600,7 +517,7 @@ function updateStatusUI(data) {
             relativesListSection.style.display = 'none';
             noteSection.style.display = 'none';
 
-             // Add Re-Register Button for Cancelled too
+            // Add Re-Register Button for Cancelled too
             const btnReReg = document.createElement('button');
             btnReReg.id = 'btnReRegister';
             btnReReg.className = 'btn btn-primary w-100 mt-3';
@@ -614,23 +531,23 @@ function updateStatusUI(data) {
 function cancelRegistration(id) {
     if (!confirm('Bạn có chắc muốn hủy đơn đăng ký này không?')) return;
 
-        showLoading(true);
-        fetch(`/api/v1/public/registrations/${id}/cancel`, {
-            method: 'PUT'
+    showLoading(true);
+    fetch(`/api/v1/public/registrations/${id}/cancel`, {
+        method: 'PUT'
+    })
+        .then(res => {
+            if (res.ok) {
+                showToast('Đã hủy đơn thành công', 'info');
+                pollStatus(document.getElementById('representativePhone').value || document.getElementById('lookupPhone').value);
+            } else {
+                showToast('Không thể hủy đơn. Có thể đơn đã được duyệt.');
+            }
         })
-            .then(res => {
-                if (res.ok) {
-                    showToast('Đã hủy đơn thành công', 'info');
-                    pollStatus(document.getElementById('representativePhone').value || document.getElementById('lookupPhone').value);
-                } else {
-                    showToast('Không thể hủy đơn. Có thể đơn đã được duyệt.');
-                }
-            })
-            .catch(err => showToast('Lỗi kết nối'))
-            .finally(() => showLoading(false));
-    }
+        .catch(err => showToast('Lỗi kết nối'))
+        .finally(() => showLoading(false));
+}
 
-    function showLoading(isLoading) {
+function showLoading(isLoading) {
     document.getElementById('loadingOverlay').style.display = isLoading ? 'flex' : 'none';
 }
 

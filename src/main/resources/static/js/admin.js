@@ -5,7 +5,7 @@ let refreshIntervalId = null;
 let currentRefreshInterval = 10000; // Default to 10 seconds
 
 // Setup on load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadProvinces();
     loadData();
     loadStats();
@@ -28,7 +28,7 @@ function startAutoRefresh() {
             const approvalModalEl = document.getElementById('approvalModal');
             const detailModalEl = document.getElementById('detailModal');
             const isModalOpen = (approvalModalEl && approvalModalEl.classList.contains('show')) ||
-                                (detailModalEl && detailModalEl.classList.contains('show'));
+                (detailModalEl && detailModalEl.classList.contains('show'));
 
             if (!isModalOpen) {
                 loadData(true); // true = silent mode
@@ -52,7 +52,7 @@ function loadProvinces() {
         .then(res => res.json())
         .then(provinces => {
             const filterProvinceSelect = document.getElementById('filterProvince');
-            
+
             // Add provinces to select dropdown
             provinces.forEach(p => {
                 const option = document.createElement('option');
@@ -85,16 +85,16 @@ function loadData(isSilent = false) {
     const adminId = localStorage.getItem('adminId');
 
     // Also reload stats when data reloads (filtered by week or month)
-    if(!isSilent) loadStats(week, month, year);
+    if (!isSilent) loadStats(week, month, year);
 
     let url = `/api/v1/admin/registrations?page=1&size=50`;
-    if(month) url += `&month=${month}`;
-    if(week) url += `&week=${week}`;
-    if(year) url += `&year=${year}`;
-    if(status) url += `&status=${status}`;
-    if(province) url += `&province=${encodeURIComponent(province)}`;
-    if(keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-    if(adminId && adminId !== 'null' && adminId !== 'undefined') url += `&adminId=${adminId}`;
+    if (month) url += `&month=${month}`;
+    if (week) url += `&week=${week}`;
+    if (year) url += `&year=${year}`;
+    if (status) url += `&status=${status}`;
+    if (province) url += `&province=${encodeURIComponent(province)}`;
+    if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+    if (adminId && adminId !== 'null' && adminId !== 'undefined') url += `&adminId=${adminId}`;
 
     // Show loading only if not auto-refreshing
     const tbody = document.getElementById('tableBody');
@@ -105,95 +105,85 @@ function loadData(isSilent = false) {
     fetch(url, {
         headers: getHeaders()
     })
-    .then(res => res.json())
-    .then(data => {
-        tbody.innerHTML = '';
-        
-        if(data.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Không có dữ liệu</td></tr>';
-            return;
-        }
+        .then(res => res.json())
+        .then(data => {
+            tbody.innerHTML = '';
 
-        data.data.forEach(item => {
-            let actionBtn = '';
-            // Only show action buttons if status is PENDING and user is not VIEWER
-            if (role !== 'VIEWER' && item.status === 'PENDING') {
-                actionBtn = `
+            if (data.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">Không có dữ liệu</td></tr>';
+                return;
+            }
+
+            data.data.forEach(item => {
+                let actionBtn = '';
+                // Only show action buttons if status is PENDING and user is not VIEWER
+                if (role !== 'VIEWER' && item.status === 'PENDING') {
+                    actionBtn = `
                     <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); openModal(${item.id})" title="Xử lý">
                         <i class="fas fa-edit"></i>
                     </button>`;
-            }
+                }
 
-            const row = `
+                // Normalize Data Fields (Handle snake_case vs camelCase)
+                const soldierName = item.soldier_name || item.soldierName || 'N/A';
+                const unitName = item.unit_name || item.unitName || 'N/A';
+                const relativeName = item.relative_name || item.relativeName || 'Khách';
+                const relativePhone = item.relative_phone || item.relativePhone || '';
+                const visitWeek = item.visit_week || item.visitWeek || '?';
+                const visitMonth = item.visit_month || item.visitMonth || '?';
+                const visitYear = item.visit_year || item.visitYear || '?';
+                const province = item.province || 'Chưa rõ';
+                const countPeople = relativeName.split(',').length;
+
+                const row = `
                 <tr onclick="showDetail(${item.id})" style="cursor: pointer;">
-                    <!-- Mobile: Combined Info -->
-                    <td class="ps-4 d-md-none">
-                        <div class="fw-bold text-dark">${item.soldier_name}</div>
-                        <div class="small text-muted text-truncate" style="max-width: 200px;">
-                            <i class="fas fa-user-friends me-1"></i>${item.relative_name} (${item.relative_name ? item.relative_name.split(',').length : 0})
-                        </div>
-                        <div class="small text-muted mt-1">
-                            <i class="far fa-clock me-1"></i>${formatDate(item.created_at)}
-                        </div>
+                    <!-- 1. Thông tin chung (Soldier/Unit/Date) -->
+                    <td class="ps-4">
+                        <div class="fw-bold text-dark">${soldierName}</div>
+                        <div class="small text-secondary">${unitName}</div>
+                        <div class="small text-muted mt-1"><i class="far fa-clock me-1"></i>${formatDate(item.created_at || item.createdAt)}</div>
                     </td>
 
-                    <!-- Desktop: Detailed Columns -->
-                    <td class="ps-4 text-muted small d-none d-md-table-cell">
-                        ${formatDate(item.created_at)}
-                    </td>
-                    <td class="d-none d-md-table-cell">
-                        <div class="fw-bold text-dark">${item.soldier_name}</div>
-                    </td>
-                    <td class="d-none d-md-table-cell"><span class="badge bg-light text-dark border text-wrap" style="max-width: 150px;">${item.unit_name || 'N/A'}</span></td>
-                    <td class="d-none d-md-table-cell">
-                        <div class="fw-bold text-primary text-truncate" style="max-width: 150px;" title="${item.relative_name}">
-                            ${item.relative_name}
-                        </div>
-                        <span class="badge bg-secondary rounded-pill" title="Số lượng người">${item.relative_name ? item.relative_name.split(',').length : 0} người</span>
-                    </td>
-                    <td class="d-none d-md-table-cell">
-                        <a href="tel:${item.relative_phone}" class="text-decoration-none fw-bold text-dark" onclick="event.stopPropagation()"><i class="fas fa-phone-alt me-1 text-muted"></i>${item.relative_phone}</a>
-                    </td>
-                    <td class="d-none d-md-table-cell">
-                        <span class="badge bg-info">${item.visit_week || '-'}</span>
-                    </td>
-                    <td class="d-none d-md-table-cell">
-                        <span class="badge bg-secondary">${item.visit_month || '-'}</span>
-                    </td>
-                    <td class="d-none d-md-table-cell">
-                        <span class="badge bg-success">${item.visit_year || '-'}</span>
-                    </td>
-                    <td class="d-none d-md-table-cell">
-                        <small class="text-muted">${item.province || '-'}</small>
-                    </td>
-                    
-                    <!-- Shared: Status -->
+                    <!-- 2. Người đăng ký -->
                     <td>
-                        ${getStatusBadge(item.status)}
-                        ${item.note ? `<div class="small text-muted fst-italic mt-1 text-truncate" style="max-width: 150px;" title="${item.note}">${item.note}</div>` : ''}
+                        <div class="fw-bold text-primary">${relativeName}</div>
+                        <div class="small text-dark"><i class="fas fa-phone-alt me-1 text-muted" style="font-size: 0.8em;"></i>${relativePhone}</div>
+                        <span class="badge bg-light text-dark border mt-1">${countPeople} người</span>
                     </td>
 
-                    <!-- Shared: Actions -->
+                    <!-- 3. Lịch trình (Desktop only) -->
+                    <td class="d-none d-md-table-cell">
+                        <div class="fw-bold">Tuần ${visitWeek}</div>
+                        <div class="small">Tháng ${visitMonth} / ${visitYear}</div>
+                        <div class="small text-muted mt-1"><i class="fas fa-map-marker-alt me-1"></i>${province}</div>
+                    </td>
+
+                    <!-- 4. Trạng thái -->
+                    <td class="text-center">
+                        ${getStatusBadge(item.status)}
+                    </td>
+
+                    <!-- 5. Thao tác -->
                     <td class="text-end pe-4 text-nowrap">
                         ${actionBtn}
-                        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteRegistration(${item.id})" title="Xóa">
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="event.stopPropagation(); deleteRegistration(${item.id})" title="Xóa">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
                 </tr>
             `;
-            tbody.innerHTML += row;
-        });
-    })
-    .catch(err => console.error(err));
+                tbody.innerHTML += row;
+            });
+        })
+        .catch(err => console.error(err));
 }
 
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleString('vi-VN', { 
-        year: 'numeric', month: '2-digit', day: '2-digit', 
-        hour: '2-digit', minute: '2-digit' 
+    return date.toLocaleString('vi-VN', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
     });
 }
 
@@ -241,48 +231,48 @@ function getWeekMonthDisplay(week, dateString) {
 function loadStats(week, month, year) {
     let url = '/api/v1/admin/stats';
     let params = [];
-    if(month) params.push(`month=${month}`);
-    if(week) params.push(`week=${week}`);
-    if(year) params.push(`year=${year}`);
+    if (month) params.push(`month=${month}`);
+    if (week) params.push(`week=${week}`);
+    if (year) params.push(`year=${year}`);
     const adminId = localStorage.getItem('adminId');
-    if(adminId && adminId !== 'null' && adminId !== 'undefined') params.push(`adminId=${adminId}`);
-    if(params.length > 0) url += `?${params.join('&')}`;
+    if (adminId && adminId !== 'null' && adminId !== 'undefined') params.push(`adminId=${adminId}`);
+    if (params.length > 0) url += `?${params.join('&')}`;
 
     fetch(url, {
         headers: getHeaders()
     })
-    .then(res => res.json())
-    .then(data => {
-        // 1. Status Counts
-        if(data.byStatus) {
-            const pending = data.byStatus.find(s => s.status === 'PENDING')?.count || 0;
-            const approved = data.byStatus.find(s => s.status === 'APPROVED')?.count || 0;
-            const rejected = data.byStatus.find(s => s.status === 'REJECTED')?.count || 0;
+        .then(res => res.json())
+        .then(data => {
+            // 1. Status Counts
+            if (data.byStatus) {
+                const pending = data.byStatus.find(s => s.status === 'PENDING')?.count || 0;
+                const approved = data.byStatus.find(s => s.status === 'APPROVED')?.count || 0;
+                const rejected = data.byStatus.find(s => s.status === 'REJECTED')?.count || 0;
 
-            document.getElementById('countPending').textContent = pending;
-            document.getElementById('countApproved').textContent = approved;
-            document.getElementById('countRejected').textContent = rejected;
-        }
+                document.getElementById('countPending').textContent = pending;
+                document.getElementById('countApproved').textContent = approved;
+                document.getElementById('countRejected').textContent = rejected;
+            }
 
-        // 2. Province Stats
-        const provinceContainer = document.getElementById('provinceStatsContainer');
-        if (data.byProvince && data.byProvince.length > 0) {
-            provinceContainer.innerHTML = '';
-            data.byProvince.forEach(p => {
-                const col = `
-                    <div class="col-md-3 mb-2">
+            // 2. Province Stats
+            const provinceContainer = document.getElementById('provinceStatsContainer');
+            if (data.byProvince && data.byProvince.length > 0) {
+                provinceContainer.innerHTML = '';
+                data.byProvince.forEach(p => {
+                    const col = `
+                    <div class="col-12 mb-2">
                         <div class="d-flex justify-content-between align-items-center border rounded p-2 bg-light">
                             <span class="small fw-bold text-truncate" style="max-width: 70%;" title="${p.province}">${p.province || 'Chưa rõ'}</span>
                             <span class="badge bg-primary rounded-pill">${p.count}</span>
                         </div>
                     </div>
                 `;
-                provinceContainer.innerHTML += col;
-            });
-        } else {
-            provinceContainer.innerHTML = '<div class="col-12 text-center text-muted small">Chưa có dữ liệu thống kê theo tỉnh</div>';
-        }
-    });
+                    provinceContainer.innerHTML += col;
+                });
+            } else {
+                provinceContainer.innerHTML = '<div class="col-12 text-center text-muted small">Chưa có dữ liệu thống kê theo tỉnh</div>';
+            }
+        });
 }
 
 function exportData() {
@@ -380,10 +370,10 @@ function performExport() {
     console.log('[Export] Starting export...', { month, week, year, adminId });
 
     let url = `/api/v1/admin/export/registrations?v=1`;
-    if(adminId && adminId !== 'null') url += `&adminId=${adminId}`;
-    if(month) url += `&month=${month}`;
-    if(week) url += `&week=${week}`;
-    if(year) url += `&year=${year}`;
+    if (adminId && adminId !== 'null') url += `&adminId=${adminId}`;
+    if (month) url += `&month=${month}`;
+    if (week) url += `&week=${week}`;
+    if (year) url += `&year=${year}`;
 
     // Show a small toast or indicator
     const btnExport = document.getElementById('btnExport');
@@ -402,42 +392,42 @@ function performExport() {
     fetch(url, {
         headers: getHeaders()
     })
-    .then(async resp => {
-        if (!resp.ok) {
-            const errText = await resp.text();
-            throw new Error(`Lỗi server (${resp.status}): ${errText}`);
-        }
-        return resp.blob();
-    })
-    .then(blob => {
-        console.log('[Export] Blob received size:', blob.size);
+        .then(async resp => {
+            if (!resp.ok) {
+                const errText = await resp.text();
+                throw new Error(`Lỗi server (${resp.status}): ${errText}`);
+            }
+            return resp.blob();
+        })
+        .then(blob => {
+            console.log('[Export] Blob received size:', blob.size);
 
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `ds_dang_ky_tuan_${week || 'all'}_${new Date().getTime()}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-    })
-    .catch(err => {
-        console.error('[Export] Failed:', err);
-        alert('Không thể xuất báo cáo: ' + err.message);
-    })
-    .finally(() => {
-        if (btnExport) {
-            btnExport.innerHTML = originalText;
-            btnExport.disabled = false;
-        }
-    });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `ds_dang_ky_tuan_${week || 'all'}_${new Date().getTime()}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+            console.error('[Export] Failed:', err);
+            alert('Không thể xuất báo cáo: ' + err.message);
+        })
+        .finally(() => {
+            if (btnExport) {
+                btnExport.innerHTML = originalText;
+                btnExport.disabled = false;
+            }
+        });
 }
 
 function getStatusBadge(status) {
-    if(status === 'PENDING') return '<span class="status-badge bg-pending">Chờ duyệt</span>';
-    if(status === 'APPROVED') return '<span class="status-badge bg-approved">Đồng ý</span>';
-    if(status === 'REJECTED') return '<span class="status-badge bg-rejected">Từ chối</span>';
-    if(status === 'CANCELLED') return '<span class="status-badge bg-secondary">Đơn hủy</span>';
+    if (status === 'PENDING') return '<span class="status-badge bg-pending">Chờ duyệt</span>';
+    if (status === 'APPROVED') return '<span class="status-badge bg-approved">Đồng ý</span>';
+    if (status === 'REJECTED') return '<span class="status-badge bg-rejected">Từ chối</span>';
+    if (status === 'CANCELLED') return '<span class="status-badge bg-secondary">Đơn hủy</span>';
     return status;
 }
 
@@ -449,19 +439,19 @@ function showDetail(id) {
     const modalEl = document.getElementById('detailModal');
     const bodyEl = document.getElementById('detailModalBody');
     bodyEl.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
-    
+
     detailModal = new bootstrap.Modal(modalEl);
     detailModal.show();
 
     fetch(`/api/v1/admin/registrations/${id}`, {
         headers: getHeaders()
     })
-    .then(res => res.json())
-    .then(data => {
-        let relativesHtml = '';
-        if (data.relatives && data.relatives.length > 0) {
-            data.relatives.forEach((rel, index) => {
-                relativesHtml += `
+        .then(res => res.json())
+        .then(data => {
+            let relativesHtml = '';
+            if (data.relatives && data.relatives.length > 0) {
+                data.relatives.forEach((rel, index) => {
+                    relativesHtml += `
                     <div class="p-3 mb-2 border rounded bg-light">
                         <div class="row">
                             <div class="col-md-6">
@@ -479,12 +469,12 @@ function showDetail(id) {
                         </div>
                     </div>
                 `;
-            });
-        } else {
-            relativesHtml = '<p class="text-muted">Không có thông tin người thân đi cùng</p>';
-        }
+                });
+            } else {
+                relativesHtml = '<p class="text-muted">Không có thông tin người thân đi cùng</p>';
+            }
 
-        bodyEl.innerHTML = `
+            bodyEl.innerHTML = `
             <div class="p-3">
                 <div class="mb-4">
                     <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Thông tin quân nhân</h6>
@@ -539,10 +529,10 @@ function showDetail(id) {
                 </div>
             </div>
         `;
-    })
-    .catch(err => {
-        bodyEl.innerHTML = `<div class="alert alert-danger">Có lỗi xảy ra khi tải dữ liệu: ${err.message}</div>`;
-    });
+        })
+        .catch(err => {
+            bodyEl.innerHTML = `<div class="alert alert-danger">Có lỗi xảy ra khi tải dữ liệu: ${err.message}</div>`;
+        });
 }
 
 function openModal(id) {
@@ -563,7 +553,7 @@ function submitStatus(status) {
         body: JSON.stringify({ status, note, adminId })
     })
         .then(async res => {
-            if(res.ok) {
+            if (res.ok) {
                 approvalModal.hide();
                 loadData();
                 loadStats();
@@ -571,7 +561,7 @@ function submitStatus(status) {
                 const errData = await res.json();
                 const msg = errData.message || 'Bạn không có quyền xử lý đơn này';
                 alert(msg);
-                
+
                 // Auto logout if session invalid
                 if (msg.includes("phiên làm việc") || msg.includes("Admin không hợp lệ")) {
                     logout();
@@ -581,22 +571,21 @@ function submitStatus(status) {
         .catch(err => {
             alert('Có lỗi xảy ra: ' + err.message);
         });
-    }
-    
-    function deleteRegistration(id) {
-        if (!confirm('Bạn có chắc chắn muốn xóa đơn đăng ký này? Hành động này không thể hoàn tác.')) return;
-    
-            fetch(`/api/v1/admin/registrations/${id}`, {
-                method: 'DELETE',
-                headers: getHeaders()
-            })        .then(res => {
-            if (res.ok) {
-                loadData();
-                loadStats();
-            } else {
-                alert('Không thể xóa đơn đăng ký này.');
-            }
-        })
+}
+
+function deleteRegistration(id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa đơn đăng ký này? Hành động này không thể hoàn tác.')) return;
+
+    fetch(`/api/v1/admin/registrations/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+    }).then(res => {
+        if (res.ok) {
+            loadData();
+            loadStats();
+        } else {
+            alert('Không thể xóa đơn đăng ký này.');
+        }
+    })
         .catch(err => console.error(err));
-    }
-    
+}

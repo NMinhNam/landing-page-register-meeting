@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,249 +13,278 @@
     <!-- Icon -->
     <link rel="icon" type="image/x-icon" th:href="@{/star.ico}">
 </head>
+
 <body>
 
-<div id="loadingOverlay">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</div>
-
-<div class="container container-app py-4">
-    <!-- Header -->
-    <div class="text-center mb-5">
-        <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm p-3 mb-3" style="width: 80px; height: 80px;">
-            <i class="fas fa-star fa-3x text-warning"></i>
-        </div>
-        <h1 class="h4 fw-bold mb-1 text-uppercase ls-1">Cổng Đăng Ký Thăm</h1>
-        <p class="text-muted small mb-0">Hệ thống quản lý thăm gặp quân nhân</p>
-    </div>
-
-    <!-- Intro Steps -->
-    <div id="introSection" class="mb-4">
-        <div class="row text-center g-2">
-            <div class="col-3 step-card">
-                <div class="step-circle"><i class="fas fa-qrcode fs-4"></i></div>
-                <small class="fw-bold d-block" style="font-size: 0.7rem;">Quét QR</small>
-            </div>
-            <div class="col-3 step-card">
-                <div class="step-circle"><i class="fas fa-edit fs-4"></i></div>
-                <small class="fw-bold d-block" style="font-size: 0.7rem;">Kê khai</small>
-            </div>
-            <div class="col-3 step-card">
-                <div class="step-circle"><i class="fas fa-clock fs-4"></i></div>
-                <small class="fw-bold d-block" style="font-size: 0.7rem;">Chờ duyệt</small>
-            </div>
-            <div class="col-3 step-card">
-                <div class="step-circle"><i class="fas fa-walking fs-4"></i></div>
-                <small class="fw-bold d-block" style="font-size: 0.7rem;">Gặp gỡ</small>
-            </div>
+    <div id="loadingOverlay">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
-    <!-- Registration Form Section -->
-    <div id="formSection">
-        <div class="card border-0">
-            <div class="card-header bg-danger text-white py-3 text-center">
-                <h5 class="mb-0 fs-6 text-uppercase fw-bold ls-1">Thông tin đăng ký</h5>
+    <div class="container container-app py-4">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm p-3 mb-3"
+                style="width: 80px; height: 80px;">
+                <i class="fas fa-star fa-3x text-warning"></i>
             </div>
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-end mb-3">
-                    <button class="btn btn-outline-secondary btn-sm rounded-pill" id="btnOpenLookup">
-                        <i class="fas fa-search me-1"></i> Tra cứu hồ sơ
-                    </button>
+            <h1 class="h4 fw-bold mb-1 text-uppercase ls-1">Cổng Đăng Ký Thăm</h1>
+            <p class="text-muted small mb-0">Hệ thống quản lý thăm gặp quân nhân</p>
+        </div>
+
+        <!-- Intro Steps -->
+        <div id="introSection" class="mb-4">
+            <div class="row text-center g-2">
+                <div class="col-3 step-card">
+                    <div class="step-circle"><i class="fas fa-qrcode fs-4"></i></div>
+                    <small class="fw-bold d-block" style="font-size: 0.7rem;">Quét QR</small>
                 </div>
+                <div class="col-3 step-card">
+                    <div class="step-circle"><i class="fas fa-edit fs-4"></i></div>
+                    <small class="fw-bold d-block" style="font-size: 0.7rem;">Kê khai</small>
+                </div>
+                <div class="col-3 step-card">
+                    <div class="step-circle"><i class="fas fa-clock fs-4"></i></div>
+                    <small class="fw-bold d-block" style="font-size: 0.7rem;">Chờ duyệt</small>
+                </div>
+                <div class="col-3 step-card">
+                    <div class="step-circle"><i class="fas fa-walking fs-4"></i></div>
+                    <small class="fw-bold d-block" style="font-size: 0.7rem;">Gặp gỡ</small>
+                </div>
+            </div>
+        </div>
 
-                <form id="registrationForm">
-                    
-                    <!-- 1. Thông tin Quân nhân -->
-                    <div class="mb-4">
-                        <h6 class="text-primary fw-bold text-uppercase mb-3"><i class="fas fa-user-shield me-2"></i>1. Thông tin Quân Nhân</h6>
-                        
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">Đơn vị đóng quân <span class="text-danger">*</span></label>
-                            <div class="bg-light p-3 rounded-3 border">
-                                <select class="form-select mb-2" id="parentUnitSelect">
-                                    <option value="">-- Chọn Cấp trên --</option>
-                                </select>
-                                <select class="form-select" id="manualUnitName" required disabled>
-                                    <option value="">-- Chọn Đơn vị trực thuộc --</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">Họ tên Quân nhân <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-user-tag text-muted"></i></span>
-                                <input type="text" class="form-control" id="manualSoldierName" required placeholder="NHẬP CHỮ IN HOA">
-                            </div>
-                        </div>
+        <!-- Registration Form Section -->
+        <div id="formSection">
+            <div class="card border-0">
+                <div class="card-header bg-danger text-white py-3 text-center">
+                    <h5 class="mb-0 fs-6 text-uppercase fw-bold ls-1">Thông tin đăng ký</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-end mb-3">
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill" id="btnOpenLookup">
+                            <i class="fas fa-search me-1"></i> Tra cứu hồ sơ
+                        </button>
                     </div>
 
-                    <hr class="border-secondary opacity-10 my-4">
+                    <form id="registrationForm">
 
-                    <!-- 2. Thông tin Người thân -->
-                    <div class="mb-4">
-                        <h6 class="text-primary fw-bold text-uppercase mb-3"><i class="fas fa-users me-2"></i>2. Thông tin người thăm</h6>
-                        
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">Số điện thoại liên hệ <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-warning bg-opacity-10 text-warning border-warning border-opacity-25">
-                                    <i class="fas fa-phone"></i>
-                                </span>
-                                <input type="tel" class="form-control fw-bold text-primary border-warning border-opacity-25" id="representativePhone" required placeholder="09xxxxxxxx">
+                        <!-- 1. Thông tin Quân nhân -->
+                        <div class="mb-4">
+                            <h6 class="text-primary fw-bold text-uppercase mb-3"><i
+                                    class="fas fa-user-shield me-2"></i>1. Thông tin Quân Nhân</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Đơn vị đóng quân <span
+                                        class="text-danger">*</span></label>
+                                <div class="bg-light p-3 rounded-3 border">
+                                    <select class="form-select mb-2" id="parentUnitSelect">
+                                        <option value="">-- Chọn Cấp trên --</option>
+                                    </select>
+                                    <select class="form-select" id="manualUnitName" required disabled>
+                                        <option value="">-- Chọn Đơn vị trực thuộc --</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-text small ms-1">Số điện thoại này dùng để nhận kết quả.</div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">Nơi xuất phát</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-map-marker-alt text-muted"></i></span>
-                                <select class="form-select" id="province" required>
-                                    <option value="">-- Chọn Tỉnh/Thành phố --</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <label class="form-label small fw-bold text-secondary mb-2">Danh sách khách thăm (Max 3)</label>
-                        <div id="relativesContainer">
-                            <!-- Relative Item 1 -->
-                            <div class="relative-item bg-white border rounded-3 p-3 mb-3 shadow-sm position-relative">
-                                <div class="badge bg-light text-dark mb-2 border">Người thứ 1</div>
-                                <div class="row g-2">
-                                    <div class="col-12">
-                                        <input type="text" class="form-control" name="relativeName" placeholder="Họ và tên" required>
-                                    </div>
-                                    <div class="col-7">
-                                        <input type="text" class="form-control" name="idNumber" placeholder="Số CCCD" required pattern="[0-9]+">
-                                    </div>
-                                    <div class="col-5">
-                                        <select class="form-select" name="relationship" required>
-                                            <option value="" disabled selected>Quan hệ</option>
-                                            <option value="Cha">Cha</option>
-                                            <option value="Mẹ">Mẹ</option>
-                                            <option value="Vợ">Vợ</option>
-                                            <option value="Con">Con</option>
-                                            <option value="Anh/Chị/Em">Anh/Em</option>
-                                            <option value="Ông/Bà">Ông/Bà</option>
-                                            <option value="Khác">Khác</option>
-                                        </select>
-                                    </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Họ tên Quân nhân <span
+                                        class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-user-tag text-muted"></i></span>
+                                    <input type="text" class="form-control" id="manualSoldierName" required
+                                        placeholder="NHẬP CHỮ IN HOA">
                                 </div>
                             </div>
                         </div>
 
-                        <button type="button" class="btn btn-light w-100 text-primary fw-bold border-dashed" id="btnAddRelative" style="border: 2px dashed #cbd5e1;">
-                            <i class="fas fa-plus-circle me-1"></i> Thêm người đi cùng
+                        <hr class="border-secondary opacity-10 my-4">
+
+                        <!-- 2. Thông tin Người thân -->
+                        <div class="mb-4">
+                            <h6 class="text-primary fw-bold text-uppercase mb-3"><i class="fas fa-users me-2"></i>2.
+                                Thông tin người thăm</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Số điện thoại liên hệ <span
+                                        class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span
+                                        class="input-group-text bg-warning bg-opacity-10 text-warning border-warning border-opacity-25">
+                                        <i class="fas fa-phone"></i>
+                                    </span>
+                                    <input type="tel"
+                                        class="form-control fw-bold text-primary border-warning border-opacity-25"
+                                        id="representativePhone" required placeholder="09xxxxxxxx">
+                                </div>
+                                <div class="form-text small ms-1">Số điện thoại này dùng để nhận kết quả.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Nơi xuất phát</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i
+                                            class="fas fa-map-marker-alt text-muted"></i></span>
+                                    <select class="form-select" id="province" required>
+                                        <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <label class="form-label small fw-bold text-secondary mb-2">Danh sách khách thăm (Max
+                                3)</label>
+                            <div id="relativesContainer">
+                                <!-- Relative Item 1 -->
+                                <div
+                                    class="relative-item bg-white border rounded-3 p-3 mb-3 shadow-sm position-relative">
+                                    <div class="badge bg-light text-dark mb-2 border">Người thứ 1</div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <input type="text" class="form-control" name="relativeName"
+                                                placeholder="Họ và tên" required>
+                                        </div>
+                                        <div class="col-7">
+                                            <input type="text" class="form-control" name="idNumber"
+                                                placeholder="Số CCCD" required pattern="[0-9]+">
+                                        </div>
+                                        <div class="col-5">
+                                            <select class="form-select" name="relationship" required>
+                                                <option value="" disabled selected>Quan hệ</option>
+                                                <option value="Cha">Cha</option>
+                                                <option value="Mẹ">Mẹ</option>
+                                                <option value="Vợ">Vợ</option>
+                                                <option value="Con">Con</option>
+                                                <option value="Anh/Chị/Em">Anh/Em</option>
+                                                <option value="Ông/Bà">Ông/Bà</option>
+                                                <option value="Khác">Khác</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-light w-100 text-primary fw-bold border-dashed"
+                                id="btnAddRelative" style="border: 2px dashed #cbd5e1;">
+                                <i class="fas fa-plus-circle me-1"></i> Thêm người đi cùng
+                            </button>
+                        </div>
+
+                        <div class="mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow-hover">
+                                <i class="fas fa-paper-plane me-2"></i> GỬI ĐĂNG KÝ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Dashboard Section -->
+        <div id="statusSection" style="display: none;">
+            <div class="card border-0 text-center">
+                <div class="card-body py-5">
+                    <div class="mb-4" id="statusIconContainer">
+                        <!-- JS inject icon -->
+                    </div>
+                    <h4 class="fw-bold mb-2" id="statusTitle">Đang chờ duyệt...</h4>
+                    <p class="text-muted" id="statusMessage">Hồ sơ đang được đơn vị chủ quản xem xét.</p>
+
+                    <div id="approvalMessage"
+                        class="alert alert-success bg-white border-success text-success mt-4 shadow-sm"
+                        style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar-check fa-2x me-3"></i>
+                            <div class="text-start">
+                                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Lịch
+                                    hẹn</small>
+                                <div id="approvalText" class="fw-bold">...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ticket Style Details -->
+                    <div class="card bg-light border-0 mt-4 text-start position-relative overflow-hidden">
+                        <div class="position-absolute top-0 start-0 w-100 h-100"
+                            style="background-image: radial-gradient(#dee2e6 1px, transparent 1px); background-size: 10px 10px; opacity: 0.5;">
+                        </div>
+                        <div class="card-body position-relative z-1">
+                            <div class="row g-2 small">
+                                <div class="col-5 text-muted">Mã hồ sơ:</div>
+                                <div class="col-7 fw-bold font-monospace text-primary text-end" id="detailCode">...
+                                </div>
+
+                                <div class="col-12 border-bottom my-2 opacity-25"></div>
+
+                                <div class="col-5 text-muted">Người đăng ký:</div>
+                                <div class="col-7 fw-bold text-end" id="detailRelative">...</div>
+
+                                <div class="col-5 text-muted">Thăm chiến sĩ:</div>
+                                <div class="col-7 fw-bold text-end" id="detailSoldier">...</div>
+
+                                <div class="col-5 text-muted">Đơn vị:</div>
+                                <div class="col-7 fw-bold text-end" id="detailUnit">...</div>
+                            </div>
+
+                            <!-- Note -->
+                            <div id="adminNoteSection" class="mt-3 pt-3 border-top border-danger border-opacity-25"
+                                style="display: none;">
+                                <span class="text-danger small fw-bold"><i class="fas fa-exclamation-circle"></i> Phản
+                                    hồi từ đơn vị:</span>
+                                <p class="text-danger small mb-0 mt-1 bg-white p-2 rounded shadow-sm" id="detailNote">
+                                    ...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button class="btn btn-outline-primary rounded-pill px-4" onclick="location.reload()">
+                            <i class="fas fa-home me-2"></i> Về trang chủ
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="mt-5">
-                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold py-3 shadow-hover" onclick="submitRegistrationForm(event)">
-                            <i class="fas fa-paper-plane me-2"></i> GỬI ĐĂNG KÝ
-                        </button>
-                    </div>
-                </form>
+        <div class="text-center mt-5 mb-3 opacity-50">
+            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 2px;">Quan Nhan
+                Visit System &copy; 2025</small>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container position-fixed bottom-0 start-50 translate-middle-x p-3">
+        <div id="liveToast" class="toast align-items-center text-white bg-dark border-0" role="alert"
+            aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Thông báo.</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         </div>
     </div>
 
-    <!-- Status Dashboard Section -->
-    <div id="statusSection" style="display: none;">
-        <div class="card border-0 text-center">
-            <div class="card-body py-5">
-                <div class="mb-4" id="statusIconContainer">
-                    <!-- JS inject icon -->
+    <!-- Lookup Modal -->
+    <div class="modal fade" id="lookupModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Tra cứu hồ sơ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <h4 class="fw-bold mb-2" id="statusTitle">Đang chờ duyệt...</h4>
-                <p class="text-muted" id="statusMessage">Hồ sơ đang được đơn vị chủ quản xem xét.</p>
-
-                <div id="approvalMessage" class="alert alert-success bg-white border-success text-success mt-4 shadow-sm" style="display: none;">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-calendar-check fa-2x me-3"></i>
-                        <div class="text-start">
-                            <small class="text-uppercase fw-bold text-muted" style="font-size: 0.65rem;">Lịch hẹn</small>
-                            <div id="approvalText" class="fw-bold">...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ticket Style Details -->
-                <div class="card bg-light border-0 mt-4 text-start position-relative overflow-hidden">
-                    <div class="position-absolute top-0 start-0 w-100 h-100" style="background-image: radial-gradient(#dee2e6 1px, transparent 1px); background-size: 10px 10px; opacity: 0.5;"></div>
-                    <div class="card-body position-relative z-1">
-                        <div class="row g-2 small">
-                            <div class="col-5 text-muted">Mã hồ sơ:</div>
-                            <div class="col-7 fw-bold font-monospace text-primary text-end" id="detailCode">...</div>
-                            
-                            <div class="col-12 border-bottom my-2 opacity-25"></div>
-
-                            <div class="col-5 text-muted">Người đăng ký:</div>
-                            <div class="col-7 fw-bold text-end" id="detailRelative">...</div>
-                            
-                            <div class="col-5 text-muted">Thăm chiến sĩ:</div>
-                            <div class="col-7 fw-bold text-end" id="detailSoldier">...</div>
-                            
-                            <div class="col-5 text-muted">Đơn vị:</div>
-                            <div class="col-7 fw-bold text-end" id="detailUnit">...</div>
-                        </div>
-                        
-                        <!-- Note -->
-                        <div id="adminNoteSection" class="mt-3 pt-3 border-top border-danger border-opacity-25" style="display: none;">
-                            <span class="text-danger small fw-bold"><i class="fas fa-exclamation-circle"></i> Phản hồi từ đơn vị:</span>
-                            <p class="text-danger small mb-0 mt-1 bg-white p-2 rounded shadow-sm" id="detailNote">...</p>
-                        </div>
+                <div class="modal-body p-4">
+                    <label class="form-label small text-muted text-uppercase fw-bold">Số điện thoại đã đăng ký</label>
+                    <div class="input-group mb-3">
+                        <input type="tel" class="form-control form-control-lg" id="lookupPhone"
+                            placeholder="Nhập SĐT...">
+                        <button class="btn btn-primary" id="btnPerformLookup"><i class="fas fa-search"></i></button>
                     </div>
                 </div>
-
-                <div class="mt-4">
-                    <button class="btn btn-outline-primary rounded-pill px-4" onclick="location.reload()">
-                        <i class="fas fa-home me-2"></i> Về trang chủ
-                    </button>
-                </div>
             </div>
         </div>
     </div>
-    
-    <div class="text-center mt-5 mb-3 opacity-50">
-        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem; letter-spacing: 2px;">Quan Nhan Visit System &copy; 2025</small>
-    </div>
-</div>
 
-<!-- Toast -->
-<div class="toast-container position-fixed bottom-0 start-50 translate-middle-x p-3">
-    <div id="liveToast" class="toast align-items-center text-white bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-            <div class="toast-body" id="toastMessage">Thông báo.</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    </div>
-</div>
-
-<!-- Lookup Modal -->
-<div class="modal fade" id="lookupModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Tra cứu hồ sơ</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <label class="form-label small text-muted text-uppercase fw-bold">Số điện thoại đã đăng ký</label>
-                <div class="input-group mb-3">
-                    <input type="tel" class="form-control form-control-lg" id="lookupPhone" placeholder="Nhập SĐT...">
-                    <button class="btn btn-primary" id="btnPerformLookup"><i class="fas fa-search"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script th:src="@{/js/public.js?v=2.0}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/public.js?v=2.0}"></script>
 </body>
-</html>
 
+</html>

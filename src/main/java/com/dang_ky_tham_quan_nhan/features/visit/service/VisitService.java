@@ -6,6 +6,7 @@ import com.dang_ky_tham_quan_nhan.features.auth.mapper.AdminUserMapper;
 import com.dang_ky_tham_quan_nhan.features.unit.entity.Unit;
 import com.dang_ky_tham_quan_nhan.features.unit.mapper.UnitMapper;
 import com.dang_ky_tham_quan_nhan.features.unit.service.UnitService;
+import com.dang_ky_tham_quan_nhan.features.visit.dto.AdminVisitResponse;
 import com.dang_ky_tham_quan_nhan.features.visit.dto.RegistrationRequest;
 import com.dang_ky_tham_quan_nhan.features.visit.dto.UpdateStatusRequest;
 import com.dang_ky_tham_quan_nhan.features.visit.entity.Relative;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,10 +34,10 @@ public class VisitService {
     private final UnitService unitService;
 
     public VisitService(RelativeMapper relativeMapper,
-                        VisitRegistrationMapper visitRegistrationMapper,
-                        UnitMapper unitMapper,
-                        AdminUserMapper adminUserMapper,
-                        UnitService unitService) {
+            VisitRegistrationMapper visitRegistrationMapper,
+            UnitMapper unitMapper,
+            AdminUserMapper adminUserMapper,
+            UnitService unitService) {
         this.relativeMapper = relativeMapper;
         this.visitRegistrationMapper = visitRegistrationMapper;
         this.unitMapper = unitMapper;
@@ -47,22 +49,20 @@ public class VisitService {
     public VisitRegistration registerVisit(RegistrationRequest request) {
         // 1. Create Registration
         VisitRegistration reg = new VisitRegistration();
-        
+
         // Manual Soldier & Unit Logic - users input directly
         reg.setSoldierId(null);
         reg.setManualSoldierName(request.getManualSoldierName());
-        
+
         String manualUnitName = request.getManualUnitName() != null ? request.getManualUnitName().trim() : null;
         reg.setManualUnitName(manualUnitName);
-        
+
         // Lookup Unit ID strictly by Name (Since frontend sends Name)
         if (manualUnitName != null) {
             Unit unit = unitMapper.findByName(manualUnitName);
             if (unit != null) {
-                System.out.println("[REGISTER] Found Unit ID: " + unit.getId() + " for Name: " + manualUnitName);
                 reg.setUnitId(unit.getId());
             } else {
-                System.out.println("[REGISTER] WARNING: Unit NOT found for Name: " + manualUnitName);
             }
         }
 
@@ -121,33 +121,42 @@ public class VisitService {
         return relativeMapper.findByRegistrationId(registrationId);
     }
 
-        public List<Map<String, Object>> searchAdmin(Long unitId, String month, Integer week, String year, String province, String status, String keyword, Long adminId) {
+    @Transactional(readOnly = true)
+    public List<AdminVisitResponse> searchAdmin(Long unitId, String month,
+            Integer week, String year, String province,
+            String status, String keyword, Long adminId) {
+
+        System.out.println("[DEBUG] searchAdmin called with adminId=" + adminId);
 
         if (adminId == null) {
-            return new java.util.ArrayList<>();
+            return new ArrayList<>();
         }
 
         // Verify admin exists
         AdminUser admin = adminUserMapper.findById(adminId);
         if (admin == null) {
+            System.out.println("[DEBUG] Admin not found");
             throw new RuntimeException("Admin không hợp lệ");
         }
 
-
         // Nếu admin không có unit_id, không có quyền xem danh sách
         if (admin.getUnitId() == null) {
-            System.out.println("[DEBUG] Admin không có unit_id, trả về danh sách rỗng");
+            System.out.println("[DEBUG] Admin unitId is null");
             return new java.util.ArrayList<>();
         }
 
         // Use WITH RECURSIVE in mapper to get all child units
-        List<Map<String, Object>> results = visitRegistrationMapper.searchAdmin(adminId, month, week, year, province, status, keyword);
+        List<AdminVisitResponse> results = visitRegistrationMapper
+                .searchAdmin(adminId, month, week, year, province,
+                        status, keyword);
 
+        System.out.println("[DEBUG] searchAdmin results size: " + results.size());
         return results;
     }
 
     public String calculateWeekMonthDisplay(Integer week, java.time.LocalDateTime createdAt) {
-        if (createdAt == null) return "Tuần " + week;
+        if (createdAt == null)
+            return "Tuần " + week;
 
         int dayOfMonth = createdAt.getDayOfMonth();
         int year = createdAt.getYear();
@@ -195,7 +204,7 @@ public class VisitService {
         }
 
         List<Relative> relatives = relativeMapper.findByRegistrationId(id);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("id", reg.getId());
         result.put("manualSoldierName", reg.getManualSoldierName());
@@ -235,18 +244,20 @@ public class VisitService {
         // 2. Unit Hierarchy Check
         if (admin.getUnitId() != null) {
             List<Long> allowedUnitIds = unitService.getAllChildUnitIds(admin.getUnitId());
-            
-            // If registration has no unitId (unlikely with new logic, but possible for old data), block it
+
+            // If registration has no unitId (unlikely with new logic, but possible for old
+            // data), block it
             if (reg.getUnitId() == null) {
-                 // Fallback: Check name match if ID is missing (legacy support)
-                 Unit adminUnit = unitMapper.findById(admin.getUnitId());
-                 String adminUnitName = (adminUnit != null) ? adminUnit.getName() : "";
-                 if (!adminUnitName.equalsIgnoreCase(reg.getManualUnitName())) {
-                     throw new RuntimeException("Đơn này không thuộc phạm vi quản lý của bạn (Không xác định đơn vị).");
-                 }
+                // Fallback: Check name match if ID is missing (legacy support)
+                Unit adminUnit = unitMapper.findById(admin.getUnitId());
+                String adminUnitName = (adminUnit != null) ? adminUnit.getName() : "";
+                if (!adminUnitName.equalsIgnoreCase(reg.getManualUnitName())) {
+                    throw new RuntimeException("Đơn này không thuộc phạm vi quản lý của bạn (Không xác định đơn vị).");
+                }
             } else {
                 if (!allowedUnitIds.contains(reg.getUnitId())) {
-                    throw new RuntimeException("Bạn không có quyền xử lý đơn của đơn vị này (nằm ngoài phạm vi quản lý).");
+                    throw new RuntimeException(
+                            "Bạn không có quyền xử lý đơn của đơn vị này (nằm ngoài phạm vi quản lý).");
                 }
             }
         }
@@ -274,6 +285,7 @@ public class VisitService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getStats(String month, Integer week, String year, Long adminId) {
         if (adminId == null) {
             return new HashMap<>();
@@ -286,34 +298,35 @@ public class VisitService {
 
         // Nếu admin không có unit_id, không có quyền xem thống kê
         if (admin.getUnitId() == null) {
-            System.out.println("[DEBUG] Admin " + admin.getUsername() + " không có unit_id, trả về stats rỗng");
             return Map.of("byProvince", new java.util.ArrayList<>(), "byStatus", new java.util.ArrayList<>());
         }
 
         // Get all records first, then apply year/week/month filtering in memory
-        List<Map<String, Object>> allData = visitRegistrationMapper.searchAdmin(adminId, null, null, null, null, null, null);
+        List<AdminVisitResponse> allData = visitRegistrationMapper
+                .searchAdmin(adminId, null, null, null, null, null, null);
+
+        System.out.println("[DEBUG] getStats - initial load size: " + allData.size());
 
         // Apply year/week/month filtering based on the stored display values
         if ((year != null && !year.isEmpty()) || (month != null && !month.isEmpty()) || week != null) {
             allData = allData.stream()
-                .filter(result -> {
-                    Integer resultWeek = result.get("visit_week") != null ?
-                        Integer.valueOf(result.get("visit_week").toString()) : null;
-                    Integer resultYear = result.get("visit_year") != null ? Integer.valueOf(result.get("visit_year").toString()) : null;
-                    Integer resultMonth = result.get("visit_month") != null ? Integer.valueOf(result.get("visit_month").toString()) : null;
+                    .filter(result -> {
+                        Integer resultWeek = result.getVisitWeek();
+                        Integer resultYear = result.getVisitYear();
+                        Integer resultMonth = result.getVisitMonth();
 
-                    if (resultWeek == null || resultYear == null || resultMonth == null) {
-                        return false;
-                    }
+                        if (resultWeek == null || resultYear == null || resultMonth == null) {
+                            return false;
+                        }
 
-                    // Check if the stored values match the filter criteria
-                    boolean yearMatch = (year == null) || (resultYear.toString().equals(year));
-                    boolean weekMatch = (week == null) || (resultWeek.equals(week));
-                    boolean monthMatch = (month == null) || (resultMonth.toString().equals(month));
+                        // Check if the stored values match the filter criteria
+                        boolean yearMatch = (year == null) || (resultYear.toString().equals(year));
+                        boolean weekMatch = (week == null) || (resultWeek.equals(week));
+                        boolean monthMatch = (month == null) || (resultMonth.toString().equals(month));
 
-                    return yearMatch && weekMatch && monthMatch;
-                })
-                .collect(java.util.stream.Collectors.toList());
+                        return yearMatch && weekMatch && monthMatch;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
         }
 
         // Calculate stats from filtered data
@@ -321,35 +334,33 @@ public class VisitService {
 
         // Calculate byProvince stats
         Map<String, Long> provinceCount = allData.stream()
-            .collect(java.util.stream.Collectors.groupingBy(
-                row -> row.get("province") != null ? row.get("province").toString() : "N/A",
-                java.util.stream.Collectors.counting()
-            ));
+                .collect(java.util.stream.Collectors.groupingBy(
+                        row -> row.getProvince() != null ? row.getProvince() : "N/A",
+                        java.util.stream.Collectors.counting()));
 
         List<Map<String, Object>> byProvince = provinceCount.entrySet().stream()
-            .map(entry -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("province", entry.getKey());
-                map.put("count", entry.getValue());
-                return map;
-            })
-            .collect(java.util.stream.Collectors.toList());
+                .map(entry -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("province", entry.getKey());
+                    map.put("count", entry.getValue());
+                    return map;
+                })
+                .collect(java.util.stream.Collectors.toList());
 
         // Calculate byStatus stats
         Map<String, Long> statusCount = allData.stream()
-            .collect(java.util.stream.Collectors.groupingBy(
-                row -> row.get("status") != null ? row.get("status").toString() : "N/A",
-                java.util.stream.Collectors.counting()
-            ));
+                .collect(java.util.stream.Collectors.groupingBy(
+                        row -> row.getStatus() != null ? row.getStatus() : "N/A",
+                        java.util.stream.Collectors.counting()));
 
         List<Map<String, Object>> byStatus = statusCount.entrySet().stream()
-            .map(entry -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("status", entry.getKey());
-                map.put("count", entry.getValue());
-                return map;
-            })
-            .collect(java.util.stream.Collectors.toList());
+                .map(entry -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("status", entry.getKey());
+                    map.put("count", entry.getValue());
+                    return map;
+                })
+                .collect(java.util.stream.Collectors.toList());
 
         stats.put("byProvince", byProvince);
         stats.put("byStatus", byStatus);
@@ -357,15 +368,18 @@ public class VisitService {
         return stats;
     }
 
-    public byte[] exportRegistrations(Long unitId, String month, Integer week, String year, String province, String status, Long adminId) {
-        List<Map<String, Object>> data = searchAdmin(unitId, month, week, year, province, status, null, adminId);
+    public byte[] exportRegistrations(Long unitId, String month, Integer week, String year, String province,
+            String status, Long adminId) {
+        List<com.dang_ky_tham_quan_nhan.features.visit.dto.AdminVisitResponse> data = searchAdmin(unitId, month, week,
+                year, province, status, null, adminId);
 
         try (org.apache.poi.ss.usermodel.Workbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
             org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet("Danh sách đăng ký");
 
             // Create title row
             org.apache.poi.ss.usermodel.Row titleRow = sheet.createRow(0);
-            String title = "DANH SÁCH ĐĂNG KÝ THĂM QUÂN NHÂN TUẦN " + (week != null ? week : "...") + " THÁNG " + (month != null ? month : "...") + " NĂM " + (year != null ? year : "...") + " CỦA TIỂU ĐOÀN 4";
+            String title = "DANH SÁCH ĐĂNG KÝ THĂM QUÂN NHÂN TUẦN " + (week != null ? week : "...") + " THÁNG "
+                    + (month != null ? month : "...") + " NĂM " + (year != null ? year : "...") + " CỦA TIỂU ĐOÀN 4";
             org.apache.poi.ss.usermodel.Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue(title);
 
@@ -385,7 +399,8 @@ public class VisitService {
 
             // Create header row (now at row 1)
             org.apache.poi.ss.usermodel.Row headerRow = sheet.createRow(1);
-            String[] headers = {"STT", "Tên quân nhân", "Chức vụ", "Đơn vị", "Tỉnh/ Thành phố", "Thân nhân", "Quan hệ", "Mã số định danh/CCCD", "SDT người đại diện", "Trạng thái", "Ghi chú"};
+            String[] headers = { "STT", "Tên quân nhân", "Chức vụ", "Đơn vị", "Tỉnh/ Thành phố", "Thân nhân", "Quan hệ",
+                    "Mã số định danh/CCCD", "SDT người đại diện", "Trạng thái", "Ghi chú" };
 
             for (int i = 0; i < headers.length; i++) {
                 org.apache.poi.ss.usermodel.Cell cell = headerRow.createCell(i);
@@ -401,16 +416,17 @@ public class VisitService {
 
             // Populate data rows (starting from row 2)
             int rowNum = 2;
-            for (Map<String, Object> row : data) {
+            for (com.dang_ky_tham_quan_nhan.features.visit.dto.AdminVisitResponse row : data) {
                 // Get the concatenated relatives and relationships from the query result
-                String relativeNames = getStringValue(row.get("relative_name"));
-                String relationships = getStringValue(row.get("relationships"));
+                String relativeNames = getStringValue(row.getRelativeName());
+                String relationships = getStringValue(row.getRelationships());
 
                 // Split the concatenated strings by comma to get individual values
                 String[] namesArray = relativeNames.isEmpty() ? new String[0] : relativeNames.split(",");
                 String[] relationshipsArray = relationships.isEmpty() ? new String[0] : relationships.split(",");
 
-                // Determine the number of rows needed based on the maximum of names or relationships
+                // Determine the number of rows needed based on the maximum of names or
+                // relationships
                 int maxRows = Math.max(namesArray.length, relationshipsArray.length);
 
                 if (maxRows == 0) {
@@ -423,16 +439,17 @@ public class VisitService {
                     dataRow.createCell(cellNum++).setCellValue(rowNum - 2); // -2 because we start from row 2
 
                     // Tên quân nhân
-                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("soldier_name")));
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getSoldierName()));
 
-                    // Chức vụ (chưa có trong DB, tạm để trống hoặc lấy từ thông tin quân nhân nếu có)
+                    // Chức vụ (chưa có trong DB, tạm để trống hoặc lấy từ thông tin quân nhân nếu
+                    // có)
                     dataRow.createCell(cellNum++).setCellValue(""); // Chưa có trong DB, cần thêm nếu có
 
                     // Đơn vị
-                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("unit_name")));
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getUnitName()));
 
                     // Tỉnh/Thành phố
-                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("province")));
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getProvince()));
 
                     // Thân nhân
                     dataRow.createCell(cellNum++).setCellValue("");
@@ -444,13 +461,13 @@ public class VisitService {
                     dataRow.createCell(cellNum++).setCellValue("");
 
                     // SDT người đại diện
-                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("relative_phone")));
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getRelativePhone()));
 
                     // Trạng thái
-                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("status")));
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getStatus()));
 
                     // Ghi chú
-                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("note")));
+                    dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getNote()));
                 } else {
                     // For each relative/relationship pair, create a separate row
                     for (int i = 0; i < maxRows; i++) {
@@ -462,34 +479,37 @@ public class VisitService {
                         dataRow.createCell(cellNum++).setCellValue(rowNum - 2); // -2 because we start from row 2
 
                         // Tên quân nhân
-                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("soldier_name")));
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getSoldierName()));
 
-                        // Chức vụ (chưa có trong DB, tạm để trống hoặc lấy từ thông tin quân nhân nếu có)
+                        // Chức vụ (chưa có trong DB, tạm để trống hoặc lấy từ thông tin quân nhân nếu
+                        // có)
                         dataRow.createCell(cellNum++).setCellValue(""); // Chưa có trong DB, cần thêm nếu có
 
                         // Đơn vị
-                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("unit_name")));
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getUnitName()));
 
                         // Tỉnh/Thành phố
-                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("province")));
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getProvince()));
 
                         // Thân nhân
                         dataRow.createCell(cellNum++).setCellValue(i < namesArray.length ? namesArray[i].trim() : "");
 
                         // Quan hệ
-                        dataRow.createCell(cellNum++).setCellValue(i < relationshipsArray.length ? relationshipsArray[i].trim() : "");
+                        dataRow.createCell(cellNum++)
+                                .setCellValue(i < relationshipsArray.length ? relationshipsArray[i].trim() : "");
 
                         // Mã số định danh/CCCD
-                        dataRow.createCell(cellNum++).setCellValue(i < namesArray.length ? getStringValue(row.get("relative_ids")) : "");
+                        dataRow.createCell(cellNum++)
+                                .setCellValue(i < namesArray.length ? getStringValue(row.getRelativeIds()) : "");
 
                         // SDT người đại diện
-                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("relative_phone")));
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getRelativePhone()));
 
                         // Trạng thái
-                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("status")));
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getStatus()));
 
                         // Ghi chú
-                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.get("note")));
+                        dataRow.createCell(cellNum++).setCellValue(getStringValue(row.getNote()));
                     }
                 }
             }
@@ -530,7 +550,7 @@ public class VisitService {
     private static class WeekMonth {
         int week;
         int month; // 1-12
-        
+
         WeekMonth(int week, int month) {
             this.week = week;
             this.month = month;
@@ -540,7 +560,7 @@ public class VisitService {
     private WeekMonth calculateWeekOfMonth(LocalDateTime date) {
         int dayOfMonth = date.getDayOfMonth();
         int firstDayOfMonth = date.withDayOfMonth(1).getDayOfWeek().getValue(); // 1=Mon, 7=Sun
-        
+
         if (firstDayOfMonth == 7) {
             // First day is Sunday
             if (dayOfMonth == 1) {
@@ -549,7 +569,7 @@ public class VisitService {
                 int daysInPrevMonth = java.time.YearMonth.from(prevMonth).lengthOfMonth();
                 int firstDayOfPrevMonth = prevMonth.withDayOfMonth(1).getDayOfWeek().getValue();
                 int weekOfPrevMonth;
-                
+
                 if (firstDayOfPrevMonth == 7) {
                     weekOfPrevMonth = (daysInPrevMonth - 1) / 7 + 1;
                 } else {
@@ -563,14 +583,14 @@ public class VisitService {
         } else {
             // First day is Monday-Saturday
             int daysBeforeFirstMonday = (8 - firstDayOfMonth) % 7;
-            
+
             if (dayOfMonth <= daysBeforeFirstMonday) {
                 // Before first Monday, belongs to previous month
                 LocalDateTime prevMonth = date.minusMonths(1);
                 int daysInPrevMonth = java.time.YearMonth.from(prevMonth).lengthOfMonth();
                 int firstDayOfPrevMonth = prevMonth.withDayOfMonth(1).getDayOfWeek().getValue();
                 int weekOfPrevMonth;
-                
+
                 if (firstDayOfPrevMonth == 7) {
                     weekOfPrevMonth = (daysInPrevMonth - 1) / 7 + 1;
                 } else {

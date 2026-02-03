@@ -135,11 +135,16 @@
                             onchange="loadData()">
                             <option value="">-- Năm --</option>
                             <option value="2024">2024</option>
-                            <option value="2025" selected>2025</option>
-                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="2026 selected">2026</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-6 d-flex justify-content-end align-items-center gap-2">
+                        <!-- Hidden province filter for JS compatibility -->
+                        <select id="filterProvince" class="d-none">
+                            <option value="">All</option>
+                        </select>
+
                         <div class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded">
                             <i class="fas fa-sync-alt text-muted small"></i>
                             <select class="form-select form-select-sm border-0 bg-transparent py-0 ps-1 pe-3"
