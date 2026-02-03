@@ -474,8 +474,34 @@ function showDetail(id) {
                 relativesHtml = '<p class="text-muted">Không có thông tin người thân đi cùng</p>';
             }
 
+            let actionFooter = '';
+            const role = localStorage.getItem('adminRole');
+            if (data.status === 'PENDING' && role !== 'VIEWER') {
+                actionFooter = `
+                <div class="fixed-bottom p-3 bg-white border-top shadow-lg d-flex gap-2" style="position: sticky; bottom: 0;">
+                    <button class="btn btn-outline-danger flex-grow-1 fw-bold" onclick="detailModal.hide(); openModal(${data.id})">
+                        <i class="fas fa-times me-2"></i> Từ chối
+                    </button>
+                    <button class="btn btn-success flex-grow-1 fw-bold" onclick="detailModal.hide(); openModal(${data.id})">
+                        <i class="fas fa-check me-2"></i> Duyệt đơn
+                    </button>
+                </div>
+                `;
+                
+                // Note: The openModal logic currently opens a generic input modal. 
+                // We might want to pre-fill status if we had separate buttons, but openModal is generic. 
+                // Let's just have one "Xử lý" button or keep two that both go to the decision modal.
+                actionFooter = `
+                <div class="p-3 bg-white border-top d-grid">
+                    <button class="btn btn-primary fw-bold py-2" onclick="detailModal.hide(); openModal(${data.id})">
+                        <i class="fas fa-edit me-2"></i> Tiến hành xử lý (Duyệt / Từ chối)
+                    </button>
+                </div>
+                `;
+            }
+
             bodyEl.innerHTML = `
-            <div class="p-3">
+            <div class="p-3 pb-0">
                 <div class="mb-4">
                     <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Thông tin quân nhân</h6>
                     <div class="ps-2">
@@ -517,7 +543,7 @@ function showDetail(id) {
                     ${relativesHtml}
                 </div>
 
-                <div>
+                <div class="mb-2">
                     <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Trạng thái & Ghi chú</h6>
                     <div class="d-flex align-items-center gap-2 mb-2 ps-2">
                         ${getStatusBadge(data.status)}
@@ -528,6 +554,7 @@ function showDetail(id) {
                     </div>
                 </div>
             </div>
+            ${actionFooter}
         `;
         })
         .catch(err => {
