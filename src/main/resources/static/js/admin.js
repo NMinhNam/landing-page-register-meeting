@@ -487,7 +487,7 @@ function showDetail(id) {
                     </button>
                 </div>
                 `;
-                
+
                 // Note: The openModal logic currently opens a generic input modal. 
                 // We might want to pre-fill status if we had separate buttons, but openModal is generic. 
                 // Let's just have one "Xử lý" button or keep two that both go to the decision modal.
@@ -501,56 +501,77 @@ function showDetail(id) {
             }
 
             bodyEl.innerHTML = `
-            <div class="p-3 pb-0">
+            <div class="px-3 py-4">
+                <!-- Soldier Block -->
                 <div class="mb-4">
-                    <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Thông tin quân nhân</h6>
-                    <div class="ps-2">
-                        <small class="text-muted d-block">Họ và tên</small>
-                        <span class="fs-5 fw-bold text-dark">${data.manualSoldierName}</span>
-                        <small class="text-muted d-block mt-2">Đơn vị</small>
-                        <span class="fw-bold text-secondary">${data.manualUnitName}</span>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Thông tin thăm gặp</h6>
-                    <div class="row g-2 ps-1">
-                        <div class="col-4">
-                            <small class="text-muted d-block">Tuần</small>
-                            <span class="badge bg-info">Tuần ${data.visitWeek}</span>
+                    <h6 class="text-uppercase fw-bold text-secondary small mb-3 ls-1">Thông tin quân nhân</h6>
+                    <div class="d-flex align-items-center gap-3 p-3 rounded-3 bg-white border shadow-sm">
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="fas fa-user-shield fa-lg" style="color: var(--vn-green-primary);"></i>
                         </div>
-                        <div class="col-4">
-                            <small class="text-muted d-block">Tháng</small>
-                            <span class="badge bg-secondary">Tháng ${data.visitMonth}</span>
-                        </div>
-                        <div class="col-4">
-                            <small class="text-muted d-block">Năm</small>
-                            <span class="badge bg-success">Năm ${data.visitYear}</span>
-                        </div>
-                        <div class="col-12 mt-2">
-                            <small class="text-muted d-block">Tỉnh/TP</small>
-                            <span class="fw-bold text-dark">${data.province}</span>
-                        </div>
-                        <div class="col-12 mt-2">
-                            <small class="text-muted d-block">SĐT đại diện</small>
-                            <a href="tel:${data.representativePhone}" class="text-decoration-none fw-bold fs-6">${data.representativePhone}</a>
+                        <div>
+                            <h5 class="mb-1 fw-bold text-dark">${data.manualSoldierName}</h5>
+                            <div class="text-secondary small fw-bold text-uppercase">${data.manualUnitName}</div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Visit Info Block -->
                 <div class="mb-4">
-                    <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Danh sách người thân</h6>
-                    ${relativesHtml}
+                    <h6 class="text-uppercase fw-bold text-secondary small mb-3 ls-1">Chi tiết thăm gặp</h6>
+                    <div class="row g-2">
+                        <!-- Dates -->
+                        <div class="col-12 mb-2">
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-white text-dark border px-3 py-2 fw-normal flex-fill">Tuần <strong>${data.visitWeek}</strong></span>
+                                <span class="badge bg-white text-dark border px-3 py-2 fw-normal flex-fill">Tháng <strong>${data.visitMonth}</strong></span>
+                                <span class="badge bg-white text-dark border px-3 py-2 fw-normal flex-fill">Năm <strong>${data.visitYear}</strong></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Location & Contact -->
+                        <div class="col-12">
+                            <div class="p-3 border rounded bg-white">
+                                <div class="row g-3">
+                                    <div class="col-6 border-end">
+                                        <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem">Tỉnh / Thành phố</small>
+                                        <div class="fw-bold text-dark mt-1">${data.province}</div>
+                                    </div>
+                                    <div class="col-6">
+                                         <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem">SĐT Đại diện</small>
+                                         <a href="tel:${data.representativePhone}" class="fw-bold text-decoration-none fs-6 mt-1 d-block" style="color: var(--vn-green-primary);">${data.representativePhone}</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Relatives Block -->
+                <div class="mb-4">
+                    <h6 class="text-uppercase fw-bold text-secondary small mb-3 ls-1">
+                        Danh sách người thân (${data.relatives ? data.relatives.length : 0})
+                    </h6>
+                    <div class="d-flex flex-column gap-2">
+                        ${relativesHtml}
+                    </div>
+                </div>
+
+                <!-- Note & Status -->
                 <div class="mb-2">
-                    <h6 class="text-primary fw-bold mb-2 border-bottom pb-2">Trạng thái & Ghi chú</h6>
-                    <div class="d-flex align-items-center gap-2 mb-2 ps-2">
+                   <h6 class="text-uppercase fw-bold text-secondary small mb-3 ls-1">Trạng thái & Ghi chú</h6>
+                    <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-top border border-bottom-0">
+                        <span class="fw-bold text-secondary small text-uppercase">Trạng thái</span>
                         ${getStatusBadge(data.status)}
-                        ${data.approvedAt ? `<small class="text-muted" style="font-size: 0.7rem;">Xử lý: ${formatDate(data.approvedAt)}</small>` : ''}
                     </div>
-                    <div class="p-3 bg-light rounded border-start border-4 border-primary mx-2">
-                        <p class="mb-0 small fw-medium text-dark">${data.note || 'Không có ghi chú từ người thăm'}</p>
+                    <div class="p-3 bg-white border rounded-bottom">
+                        <p class="mb-0 fw-medium text-dark small" style="white-space: pre-wrap;">${data.note || 'Không có ghi chú'}</p>
+                        ${data.approvedAt ? `
+                        <div class="mt-3 pt-2 border-top text-end">
+                            <small class="text-muted fst-italic" style="font-size: 0.75rem;">
+                                <i class="far fa-clock me-1"></i> ${formatDate(data.approvedAt)}
+                            </small>
+                        </div>` : ''}
                     </div>
                 </div>
             </div>
